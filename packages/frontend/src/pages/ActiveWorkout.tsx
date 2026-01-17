@@ -6,6 +6,7 @@ import Stopwatch from '../components/Stopwatch';
 import ExerciseSelector from '../components/ExerciseSelector';
 import WorkoutExerciseCard from '../components/WorkoutExerciseCard';
 import SaveAsTemplateModal from '../components/SaveAsTemplateModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ActiveWorkout() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,8 @@ export default function ActiveWorkout() {
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false);
   const [completedWorkoutData, setCompletedWorkoutData] = useState<{ id: string; name: string; templateId: string | null } | null>(null);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -37,8 +40,7 @@ export default function ActiveWorkout() {
 
   const handleCompleteWorkout = async () => {
     if (!currentWorkout) return;
-
-    if (!confirm('Are you sure you want to complete this workout?')) return;
+    setCompleteModalOpen(false);
 
     try {
       // Store workout data before completing
@@ -68,8 +70,7 @@ export default function ActiveWorkout() {
 
   const handleDeleteWorkout = async () => {
     if (!currentWorkout) return;
-
-    if (!confirm('Are you sure you want to cancel and delete this workout? This cannot be undone.')) return;
+    setDeleteModalOpen(false);
 
     try {
       await deleteWorkout(currentWorkout.id);
@@ -139,10 +140,10 @@ export default function ActiveWorkout() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={handleDeleteWorkout} className="btn btn-outline">
+          <button onClick={() => setDeleteModalOpen(true)} className="btn btn-outline">
             Cancel
           </button>
-          <button onClick={handleCompleteWorkout} className="btn btn-success">
+          <button onClick={() => setCompleteModalOpen(true)} className="btn btn-success">
             Complete Workout
           </button>
         </div>
@@ -208,6 +209,30 @@ export default function ActiveWorkout() {
           onClose={() => setShowExerciseSelector(false)}
         />
       )}
+
+      {/* Complete Workout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={completeModalOpen}
+        title="Complete Workout"
+        message="Are you sure you want to complete this workout?"
+        confirmText="Complete"
+        cancelText="Cancel"
+        onConfirm={handleCompleteWorkout}
+        onCancel={() => setCompleteModalOpen(false)}
+        danger={false}
+      />
+
+      {/* Delete Workout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Cancel Workout"
+        message="Are you sure you want to cancel and delete this workout? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Keep Workout"
+        onConfirm={handleDeleteWorkout}
+        onCancel={() => setDeleteModalOpen(false)}
+        danger={true}
+      />
     </div>
   );
 }

@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { templateAPI } from '../services/api';
 import { WorkoutTemplate } from '@workout-tracker/shared';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function TemplateManager() {
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,18 +26,28 @@ export default function TemplateManager() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClick = (id: string, name: string) => {
+    setTemplateToDelete({ id, name });
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!templateToDelete) return;
 
     try {
-      await templateAPI.delete(id);
-      setTemplates(templates.filter((t) => t.id !== id));
+      await templateAPI.delete(templateToDelete.id);
+      setTemplates(templates.filter((t) => t.id !== templateToDelete.id));
+      setDeleteModalOpen(false);
+      setTemplateToDelete(null);
     } catch (error) {
       console.error('Failed to delete template:', error);
       alert('Failed to delete template');
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setTemplateToDelete(null);
   };
 
   if (loading) {
@@ -208,7 +221,7 @@ export default function TemplateManager() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(template.id, template.name);
+                      handleDeleteClick(template.id, template.name);
                     }}
                     style={{
                       padding: '0.5rem 1rem',
@@ -238,6 +251,17 @@ export default function TemplateManager() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Template"
+        message={`Are you sure you want to delete "${templateToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        danger={true}
+      />
     </div>
   );
 }

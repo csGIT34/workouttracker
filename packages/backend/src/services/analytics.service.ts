@@ -415,6 +415,326 @@ export class AnalyticsService {
       a.exerciseName.localeCompare(b.exerciseName)
     );
   }
+
+  async getWorkoutStreak(userId: string): Promise<{
+    currentStreak: number;
+    longestStreak: number;
+    lastWorkoutDate: Date | null;
+  }> {
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        completedAt: { not: null },
+      },
+      select: {
+        completedAt: true,
+      },
+      orderBy: {
+        completedAt: 'desc',
+      },
+    });
+
+    if (workouts.length === 0) {
+      return { currentStreak: 0, longestStreak: 0, lastWorkoutDate: null };
+    }
+
+    // Get unique workout dates (ignore time, just date)
+    const workoutDates = new Set<string>();
+    workouts.forEach(w => {
+      if (w.completedAt) {
+        const date = new Date(w.completedAt);
+        date.setHours(0, 0, 0, 0);
+        workoutDates.add(date.toISOString());
+      }
+    });
+
+    const sortedDates = Array.from(workoutDates)
+      .map(d => new Date(d))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    // Calculate current streak
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let checkDate = new Date(today);
+    // Start from today or yesterday
+    if (sortedDates[0].getTime() === today.getTime()) {
+      currentStreak = 1;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else if (sortedDates[0].getTime() === yesterday.getTime()) {
+      currentStreak = 1;
+      checkDate = new Date(yesterday);
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      // No recent workout
+      currentStreak = 0;
+    }
+
+    // Count consecutive days
+    if (currentStreak > 0) {
+      for (let i = 1; i < sortedDates.length; i++) {
+        if (sortedDates[i].getTime() === checkDate.getTime()) {
+          currentStreak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 1;
+    for (let i = 1; i < sortedDates.length; i++) {
+      const daysDiff = Math.floor(
+        (sortedDates[i - 1].getTime() - sortedDates[i].getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysDiff === 1) {
+        tempStreak++;
+      } else {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+
+    return {
+      currentStreak,
+      longestStreak,
+      lastWorkoutDate: workouts[0].completedAt,
+    };
+  }
+
+  async getWeeklyVolumeComparison(userId: string): Promise<{
+    thisWeek: number;
+    lastWeek: number;
+    percentChange: number;
+  }> {
+    const now = new Date();
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay());
+    thisWeekStart.setHours(0, 0, 0, 0);
+
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const lastWeekEnd = new Date(thisWeekStart);
+    lastWeekEnd.setSeconds(lastWeekEnd.getSeconds() - 1);
+
+    const [thisWeekWorkouts, lastWeekWorkouts] = await Promise.all([
+      prisma.workout.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          completedAt: { gte: thisWeekStart },
+        },
+        include: {
+          workoutExercises: {
+            include: {
+              sets: { where: { completed: true } },
+              exercise: { select: { type: true } },
+            },
+          },
+        },
+      }),
+      prisma.workout.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          completedAt: { gte: lastWeekStart, lt: lastWeekEnd },
+        },
+        include: {
+          workoutExercises: {
+            include: {
+              sets: { where: { completed: true } },
+              exercise: { select: { type: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const calculateVolume = (workouts: any[]) => {
+      return workouts.reduce((total, workout) => {
+        return total + workout.workoutExercises.reduce((wTotal: number, we: any) => {
+          if (we.exercise.type !== ExerciseType.STRENGTH) return wTotal;
+          return wTotal + we.sets.reduce((sTotal: number, set: any) => {
+            return sTotal + (set.weight && set.reps ? set.weight * set.reps : 0);
+          }, 0);
+        }, 0);
+      }, 0);
+    };
+
+    const thisWeek = calculateVolume(thisWeekWorkouts);
+    const lastWeek = calculateVolume(lastWeekWorkouts);
+    const percentChange = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0;
+
+    return { thisWeek, lastWeek, percentChange };
+  }
+
+  async getRecentPRs(userId: string, limit = 5): Promise<PersonalRecord[]> {
+    const allPRs = await this.getPersonalRecords(userId);
+    return allPRs
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
+  }
+
+  async getMonthlySummary(userId: string): Promise<{
+    totalVolume: number;
+    averageDuration: number;
+    workoutCount: number;
+    topMuscleGroups: Array<{ name: string; count: number }>;
+  }> {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        completedAt: { gte: monthStart },
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            sets: { where: { completed: true } },
+            exercise: {
+              include: {
+                muscleGroup: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const totalVolume = workouts.reduce((total, workout) => {
+      return total + workout.workoutExercises.reduce((wTotal, we) => {
+        if (we.exercise.type !== ExerciseType.STRENGTH) return wTotal;
+        return wTotal + we.sets.reduce((sTotal, set) => {
+          return sTotal + (set.weight && set.reps ? set.weight * set.reps : 0);
+        }, 0);
+      }, 0);
+    }, 0);
+
+    const durations = workouts
+      .filter(w => w.startedAt && w.completedAt)
+      .map(w => {
+        const duration = new Date(w.completedAt!).getTime() - new Date(w.startedAt).getTime();
+        return duration / (1000 * 60); // minutes
+      });
+
+    const averageDuration = durations.length > 0
+      ? durations.reduce((a, b) => a + b, 0) / durations.length
+      : 0;
+
+    // Count muscle groups
+    const muscleGroupCounts = new Map<string, number>();
+    workouts.forEach(workout => {
+      workout.workoutExercises.forEach(we => {
+        if (we.exercise.muscleGroup) {
+          const name = we.exercise.muscleGroup.name;
+          muscleGroupCounts.set(name, (muscleGroupCounts.get(name) || 0) + 1);
+        }
+      });
+    });
+
+    const topMuscleGroups = Array.from(muscleGroupCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    return {
+      totalVolume,
+      averageDuration: Math.round(averageDuration),
+      workoutCount: workouts.length,
+      topMuscleGroups,
+    };
+  }
+
+  async getRecentActivity(userId: string, limit = 5): Promise<Array<{
+    id: string;
+    name: string;
+    completedAt: Date;
+    duration: number;
+    volume: number;
+    exerciseCount: number;
+    highlights: string[];
+  }>> {
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        completedAt: { not: null },
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            sets: { where: { completed: true } },
+            exercise: true,
+          },
+        },
+      },
+      orderBy: {
+        completedAt: 'desc',
+      },
+      take: limit,
+    });
+
+    return workouts.map(workout => {
+      const duration = workout.completedAt && workout.startedAt
+        ? (new Date(workout.completedAt).getTime() - new Date(workout.startedAt).getTime()) / (1000 * 60)
+        : 0;
+
+      const volume = workout.workoutExercises.reduce((total, we) => {
+        if (we.exercise.type !== ExerciseType.STRENGTH) return total;
+        return total + we.sets.reduce((sTotal, set) => {
+          return sTotal + (set.weight && set.reps ? set.weight * set.reps : 0);
+        }, 0);
+      }, 0);
+
+      const highlights: string[] = [];
+
+      // Find highest weight set
+      let maxWeight = 0;
+      let maxWeightExercise = '';
+      workout.workoutExercises.forEach(we => {
+        we.sets.forEach(set => {
+          if (set.weight && set.weight > maxWeight) {
+            maxWeight = set.weight;
+            maxWeightExercise = we.exercise.name;
+          }
+        });
+      });
+
+      if (maxWeight > 0) {
+        highlights.push(`${maxWeight} lbs on ${maxWeightExercise}`);
+      }
+
+      if (volume > 0) {
+        highlights.push(`${Math.round(volume).toLocaleString()} lbs total volume`);
+      }
+
+      if (duration > 0) {
+        highlights.push(`${Math.round(duration)} min`);
+      }
+
+      return {
+        id: workout.id,
+        name: workout.name,
+        completedAt: workout.completedAt!,
+        duration: Math.round(duration),
+        volume: Math.round(volume),
+        exerciseCount: workout.workoutExercises.length,
+        highlights,
+      };
+    });
+  }
 }
 
 export const analyticsService = new AnalyticsService();

@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
 import { Workout, WorkoutStatus } from '@workout-tracker/shared';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkoutHistory() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const { getWorkouts, deleteWorkout } = useWorkout();
 
   useEffect(() => {
@@ -24,12 +27,19 @@ export default function WorkoutHistory() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this workout?')) return;
+  const handleDeleteClick = (id: string) => {
+    setWorkoutToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!workoutToDelete) return;
 
     try {
-      await deleteWorkout(id);
-      setWorkouts(workouts.filter((w) => w.id !== id));
+      await deleteWorkout(workoutToDelete);
+      setWorkouts(workouts.filter((w) => w.id !== workoutToDelete));
+      setDeleteModalOpen(false);
+      setWorkoutToDelete(null);
     } catch (error) {
       console.error('Failed to delete workout:', error);
     }
@@ -138,7 +148,7 @@ export default function WorkoutHistory() {
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        handleDelete(workout.id);
+                        handleDeleteClick(workout.id);
                       }}
                       className="btn btn-outline"
                     >
@@ -151,6 +161,21 @@ export default function WorkoutHistory() {
           })}
         </div>
       )}
+
+      {/* Delete Workout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Workout"
+        message="Are you sure you want to delete this workout? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setWorkoutToDelete(null);
+        }}
+        danger={true}
+      />
     </div>
   );
 }
