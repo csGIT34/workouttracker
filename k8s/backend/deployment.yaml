@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: workout-tracker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: workout-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: workout-tracker-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: workout-tracker-secrets
+                  key: JWT_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: workout-tracker-secrets
+                  key: JWT_REFRESH_SECRET
+            - name: JWT_ACCESS_EXPIRES_IN
+              valueFrom:
+                configMapKeyRef:
+                  name: workout-tracker-config
+                  key: JWT_ACCESS_EXPIRES_IN
+            - name: JWT_REFRESH_EXPIRES_IN
+              valueFrom:
+                configMapKeyRef:
+                  name: workout-tracker-config
+                  key: JWT_REFRESH_EXPIRES_IN
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: workout-tracker-config
+                  key: NODE_ENV
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: workout-tracker-config
+                  key: FRONTEND_URL
+            - name: PORT
+              value: "3000"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: workout-tracker
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP

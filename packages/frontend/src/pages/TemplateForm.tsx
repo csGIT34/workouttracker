@@ -1,0 +1,300 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { templateAPI } from '../services/api';
+import {
+  WorkoutTemplate,
+  TemplateExercise,
+  Exercise,
+  ExerciseType,
+} from '@workout-tracker/shared';
+import ExerciseSelector from '../components/ExerciseSelector';
+
+export default function TemplateForm() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [color, setColor] = useState('#3b82f6');
+  const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>([]);
+  const [showExerciseSelector, setShowExerciseSelector] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchTemplate();
+    }
+  }, [id]);
+
+  const fetchTemplate = async () => {
+    if (!id) return;
+    try {
+      const response = await templateAPI.getById(id);
+      const template: WorkoutTemplate = response.data;
+      setName(template.name);
+      setDescription(template.description || '');
+      setColor(template.color || '#3b82f6');
+      setTemplateExercises(template.templateExercises || []);
+    } catch (error) {
+      console.error('Failed to fetch template:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (id) {
+        await templateAPI.update(id, { name, description, color });
+        navigate('/templates');
+      } else {
+        const response = await templateAPI.create({ name, description, color });
+        navigate(`/templates/${response.data.id}/edit`);
+      }
+    } catch (error) {
+      console.error('Failed to save template:', error);
+      alert('Failed to save template');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddExercise = async (exercise: Exercise, data: {
+    targetSets?: number;
+    targetReps?: number;
+    targetDurationMinutes?: number;
+    targetDistanceMiles?: number;
+  }) => {
+    if (!id) {
+      alert('Please save the template first before adding exercises');
+      return;
+    }
+
+    try {
+      const response = await templateAPI.addExercise(id, {
+        exerciseId: exercise.id,
+        ...data,
+      });
+      setTemplateExercises([...templateExercises, response.data]);
+    } catch (error) {
+      console.error('Failed to add exercise:', error);
+      alert('Failed to add exercise');
+    }
+  };
+
+  const handleRemoveExercise = async (exerciseId: string) => {
+    if (!id) return;
+
+    try {
+      await templateAPI.removeExercise(id, exerciseId);
+      setTemplateExercises(templateExercises.filter((e) => e.id !== exerciseId));
+    } catch (error) {
+      console.error('Failed to remove exercise:', error);
+      alert('Failed to remove exercise');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          {id ? 'Edit Template' : 'Create Template'}
+        </h1>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          {id ? 'Update your workout template' : 'Create a new reusable workout template'}
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: id ? '1fr 1fr' : '1fr' }}>
+        {/* Template Details Card */}
+        <div className="card">
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1.5rem' }}>
+            Template Details
+          </h2>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                Template Name *
+              </label>
+              <input
+                type="text"
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Push Day, Leg Day, Upper Body"
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                Description
+              </label>
+              <textarea
+                className="input"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional description of this workout"
+                rows={3}
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                Color
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  style={{
+                    width: '60px',
+                    height: '40px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer'
+                  }}
+                />
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  This color will be used in your calendar and schedule
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+              >
+                {loading ? 'Saving...' : id ? 'Save & Close' : 'Create Template'}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/templates')}
+                className="btn btn-outline"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Exercises Card (only shown when editing) */}
+        {id && (
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+                Exercises ({templateExercises.length})
+              </h2>
+              <button
+                onClick={() => setShowExerciseSelector(true)}
+                className="btn btn-primary"
+              >
+                + Add Exercise
+              </button>
+            </div>
+
+            {templateExercises.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem 1rem',
+                backgroundColor: 'var(--background)',
+                borderRadius: '0.375rem',
+                border: '2px dashed var(--border)'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💪</div>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  No exercises added yet
+                </p>
+                <button
+                  onClick={() => setShowExerciseSelector(true)}
+                  className="btn btn-outline"
+                >
+                  Add Your First Exercise
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {templateExercises.map((te, index) => (
+                  <div
+                    key={te.id}
+                    style={{
+                      padding: '1rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      backgroundColor: 'var(--background)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: color,
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem'
+                      }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                          {te.exercise?.name}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                          {te.exercise?.type === ExerciseType.CARDIO ? (
+                            <>
+                              {te.targetDurationMinutes || 0} min
+                              {te.targetDistanceMiles ? ` • ${te.targetDistanceMiles} mi` : ''}
+                            </>
+                          ) : (
+                            <>
+                              {te.targetSets} sets × {te.targetReps} reps
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveExercise(te.id)}
+                      style={{
+                        padding: '0.5rem',
+                        color: 'var(--danger)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.25rem',
+                        lineHeight: 1
+                      }}
+                      title="Remove exercise"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {showExerciseSelector && (
+        <ExerciseSelector
+          onClose={() => setShowExerciseSelector(false)}
+          onAddExercise={handleAddExercise}
+        />
+      )}
+    </div>
+  );
+}
