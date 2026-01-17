@@ -90,6 +90,13 @@ export const analyticsAPI = {
   getMuscleDistribution: (range = '3months') =>
     api.get(`/api/v1/analytics/muscle-distribution`, { params: { range } }),
   getPersonalRecords: () => api.get(`/api/v1/analytics/personal-records`),
+  getStreak: () => api.get(`/api/v1/analytics/streak`),
+  getVolumeComparison: () => api.get(`/api/v1/analytics/volume/comparison`),
+  getRecentPRs: (limit = 5) =>
+    api.get(`/api/v1/analytics/recent-prs`, { params: { limit } }),
+  getMonthlySummary: () => api.get(`/api/v1/analytics/monthly-summary`),
+  getRecentActivity: (limit = 5) =>
+    api.get(`/api/v1/analytics/recent-activity`, { params: { limit } }),
 };
 
 // Workout API - add new endpoint

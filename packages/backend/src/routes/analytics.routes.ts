@@ -49,4 +49,31 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/personal-records', async (request) => {
     return analyticsService.getPersonalRecords(request.user!.userId);
   });
+
+  // Get workout streak
+  fastify.get('/streak', async (request) => {
+    return analyticsService.getWorkoutStreak(request.user!.userId);
+  });
+
+  // Get weekly volume comparison
+  fastify.get('/volume/comparison', async (request) => {
+    return analyticsService.getWeeklyVolumeComparison(request.user!.userId);
+  });
+
+  // Get recent PRs
+  fastify.get('/recent-prs', async (request) => {
+    const { limit = 5 } = request.query as any;
+    return analyticsService.getRecentPRs(request.user!.userId, Number(limit));
+  });
+
+  // Get monthly summary
+  fastify.get('/monthly-summary', async (request) => {
+    return analyticsService.getMonthlySummary(request.user!.userId);
+  });
+
+  // Get recent activity
+  fastify.get('/recent-activity', async (request) => {
+    const { limit = 5 } = request.query as any;
+    return analyticsService.getRecentActivity(request.user!.userId, Number(limit));
+  });
 }
