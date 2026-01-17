@@ -1,0 +1,233 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExerciseType {
+  STRENGTH
+  CARDIO
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workouts              Workout[]
+  exerciseProgressions  ExerciseProgression[]
+  workoutTemplates      WorkoutTemplate[]
+  workoutSchedules      WorkoutSchedule[]
+  exercises             Exercise[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model MuscleGroup {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exercises Exercise[]
+
+  @@index([name])
+}
+
+model ExerciseCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exercises Exercise[]
+
+  @@index([name])
+}
+
+model Exercise {
+  id               String       @id @default(uuid())
+  userId           String?
+  name             String
+  description      String?
+  muscleGroupId    String?
+  categoryId       String?
+  type             ExerciseType @default(STRENGTH)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user                 User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muscleGroup          MuscleGroup?          @relation(fields: [muscleGroupId], references: [id], onDelete: SetNull)
+  category             ExerciseCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  workoutExercises     WorkoutExercise[]
+  exerciseProgressions ExerciseProgression[]
+  templateExercises    TemplateExercise[]
+
+  @@index([userId])
+  @@index([muscleGroupId])
+  @@index([categoryId])
+  @@index([type])
+}
+
+model Workout {
+  id          String   @id @default(uuid())
+  userId      String
+  templateId  String?
+  name        String
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  status      String   @default("IN_PROGRESS")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template         WorkoutTemplate?  @relation(fields: [templateId], references: [id])
+  workoutExercises WorkoutExercise[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([templateId])
+}
+
+model WorkoutExercise {
+  id              String   @id @default(uuid())
+  workoutId       String
+  exerciseId      String
+  orderIndex      Int
+  targetSets      Int
+  targetReps      Int
+  suggestedWeight Float?
+  completed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+  sets     Set[]
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+model Set {
+  id                String   @id @default(uuid())
+  workoutExerciseId String
+  setNumber         Int
+
+  // Strength training fields
+  reps              Int?
+  weight            Float?
+  rpe               Float?
+
+  // Cardio fields
+  durationMinutes   Float?
+  distanceMiles     Float?
+  caloriesBurned    Int?
+
+  completed         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutExerciseId])
+}
+
+model ExerciseProgression {
+  id                    String   @id @default(uuid())
+  userId                String
+  exerciseId            String
+  lastWorkoutId         String
+  avgWeight             Float
+  avgReps               Float
+  recommendation        String
+  recommendationDetails String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
+  @@index([exerciseId])
+}
+
+model WorkoutTemplate {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  color       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateExercises TemplateExercise[]
+  schedules         WorkoutSchedule[]
+  workouts          Workout[]
+
+  @@index([userId])
+  @@index([userId, isActive])
+}
+
+model TemplateExercise {
+  id         String   @id @default(uuid())
+  templateId String
+  exerciseId String
+  orderIndex Int
+
+  // For strength exercises
+  targetSets Int?
+  targetReps Int?
+
+  // For cardio exercises
+  targetDurationMinutes Float?
+  targetDistanceMiles   Float?
+
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  template WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  exercise Exercise        @relation(fields: [exerciseId], references: [id])
+
+  @@index([templateId])
+  @@index([exerciseId])
+}
+
+model WorkoutSchedule {
+  id         String   @id @default(uuid())
+  userId     String
+  templateId String
+  dayOfWeek  Int
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+  @@index([templateId])
+}

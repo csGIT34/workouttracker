@@ -1,0 +1,550 @@
+import { prisma } from '../lib/prisma.js';
+import {
+  CreateWorkoutDto,
+  AddExerciseToWorkoutDto,
+  LogSetDto,
+  UpdateSetDto,
+  WorkoutStatus,
+  ExerciseType,
+  SaveWorkoutAsTemplateDto,
+} from '@workout-tracker/shared';
+import { progressionService } from './progression.service.js';
+
+export class WorkoutService {
+  async createWorkout(userId: string, data: CreateWorkoutDto) {
+    return prisma.workout.create({
+      data: {
+        userId,
+        name: data.name,
+        status: WorkoutStatus.IN_PROGRESS,
+      },
+    });
+  }
+
+  async getWorkouts(userId: string, limit = 20, offset = 0) {
+    const [workouts, total] = await Promise.all([
+      prisma.workout.findMany({
+        where: { userId },
+        include: {
+          workoutExercises: {
+            include: {
+              exercise: true,
+              sets: true,
+            },
+          },
+        },
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.workout.count({ where: { userId } }),
+    ]);
+
+    return { workouts, total };
+  }
+
+  async getWorkoutById(userId: string, workoutId: string) {
+    const workout = await prisma.workout.findFirst({
+      where: {
+        id: workoutId,
+        userId,
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+            sets: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+    });
+
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    return workout;
+  }
+
+  async getActiveWorkout(userId: string) {
+    const workout = await prisma.workout.findFirst({
+      where: {
+        userId,
+        status: WorkoutStatus.IN_PROGRESS,
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+            sets: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    return workout;
+  }
+
+  async addExerciseToWorkout(
+    userId: string,
+    workoutId: string,
+    data: AddExerciseToWorkoutDto
+  ) {
+    // Verify workout belongs to user
+    const workout = await prisma.workout.findFirst({
+      where: { id: workoutId, userId },
+      include: { workoutExercises: true },
+    });
+
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    if (workout.status !== WorkoutStatus.IN_PROGRESS) {
+      throw new Error('Cannot add exercises to a completed workout');
+    }
+
+    // Get next order index
+    const maxOrder = workout.workoutExercises.reduce(
+      (max, ex) => Math.max(max, ex.orderIndex),
+      -1
+    );
+
+    return prisma.workoutExercise.create({
+      data: {
+        workoutId,
+        exerciseId: data.exerciseId,
+        orderIndex: maxOrder + 1,
+        targetSets: data.targetSets,
+        targetReps: data.targetReps,
+      },
+      include: {
+        exercise: true,
+        sets: true,
+      },
+    });
+  }
+
+  async completeWorkoutExercise(
+    userId: string,
+    workoutId: string,
+    exerciseId: string
+  ) {
+    // Verify workout belongs to user
+    const workout = await prisma.workout.findFirst({
+      where: { id: workoutId, userId },
+    });
+
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    return prisma.workoutExercise.updateMany({
+      where: {
+        id: exerciseId,
+        workoutId,
+      },
+      data: {
+        completed: true,
+      },
+    });
+  }
+
+  async completeWorkout(userId: string, workoutId: string) {
+    const workout = await prisma.workout.findFirst({
+      where: { id: workoutId, userId },
+    });
+
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    const updatedWorkout = await prisma.workout.update({
+      where: { id: workoutId },
+      data: {
+        status: WorkoutStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    });
+
+    // Update progression for all exercises in this workout
+    await progressionService.updateProgressionsAfterWorkout(userId, workoutId);
+
+    return updatedWorkout;
+  }
+
+  async deleteWorkout(userId: string, workoutId: string) {
+    const workout = await prisma.workout.findFirst({
+      where: { id: workoutId, userId },
+    });
+
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    return prisma.workout.delete({
+      where: { id: workoutId },
+    });
+  }
+
+  async logSet(
+    userId: string,
+    workoutExerciseId: string,
+    data: LogSetDto
+  ) {
+    // Verify workout exercise belongs to user's workout
+    const workoutExercise = await prisma.workoutExercise.findFirst({
+      where: {
+        id: workoutExerciseId,
+        workout: {
+          userId,
+        },
+      },
+    });
+
+    if (!workoutExercise) {
+      throw new Error('Workout exercise not found');
+    }
+
+    return prisma.set.create({
+      data: {
+        workoutExerciseId,
+        setNumber: data.setNumber,
+        reps: data.reps,
+        weight: data.weight,
+        rpe: data.rpe,
+        durationMinutes: data.durationMinutes,
+        distanceMiles: data.distanceMiles,
+        caloriesBurned: data.caloriesBurned,
+        completed: true,
+      },
+    });
+  }
+
+  async updateSet(userId: string, setId: string, data: UpdateSetDto) {
+    // Verify set belongs to user's workout and workout is not completed
+    const set = await prisma.set.findFirst({
+      where: {
+        id: setId,
+        workoutExercise: {
+          workout: {
+            userId,
+          },
+        },
+      },
+      include: {
+        workoutExercise: {
+          include: {
+            workout: true,
+          },
+        },
+      },
+    });
+
+    if (!set) {
+      throw new Error('Set not found');
+    }
+
+    if (set.workoutExercise.workout.status === WorkoutStatus.COMPLETED) {
+      throw new Error('Cannot edit sets in a completed workout');
+    }
+
+    return prisma.set.update({
+      where: { id: setId },
+      data,
+    });
+  }
+
+  async completeSet(userId: string, setId: string) {
+    return this.updateSet(userId, setId, { completed: true });
+  }
+
+  async getWorkoutStats(userId: string) {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalWorkouts, weekWorkouts] = await Promise.all([
+      prisma.workout.count({
+        where: {
+          userId,
+          status: WorkoutStatus.COMPLETED,
+        },
+      }),
+      prisma.workout.count({
+        where: {
+          userId,
+          status: WorkoutStatus.COMPLETED,
+          completedAt: {
+            gte: weekAgo,
+          },
+        },
+      }),
+    ]);
+
+    return {
+      totalWorkouts,
+      weekWorkouts,
+    };
+  }
+
+  async getRecentWorkouts(userId: string, limit = 5) {
+    return prisma.workout.findMany({
+      where: {
+        userId,
+        status: WorkoutStatus.COMPLETED,
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+          },
+        },
+      },
+      orderBy: { completedAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  async createWorkoutFromTemplate(userId: string, templateId: string) {
+    // Get the template
+    const template = await prisma.workoutTemplate.findFirst({
+      where: {
+        id: templateId,
+        userId,
+      },
+      include: {
+        templateExercises: {
+          include: {
+            exercise: true,
+          },
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+    });
+
+    if (!template) {
+      throw new Error('Workout template not found');
+    }
+
+    // Create new workout
+    const newWorkout = await prisma.workout.create({
+      data: {
+        userId,
+        name: template.name,
+        templateId: template.id,
+        status: WorkoutStatus.IN_PROGRESS,
+      },
+    });
+
+    // Add exercises from template
+    for (const templateExercise of template.templateExercises) {
+      const exercise = templateExercise.exercise;
+
+      if (exercise.type === ExerciseType.STRENGTH) {
+        // For strength exercises, apply progression logic
+        const progression = await progressionService.getProgressionForExercise(
+          userId,
+          exercise.id
+        );
+
+        let targetSets = templateExercise.targetSets || 3;
+        let targetReps = templateExercise.targetReps || 10;
+        let suggestedWeight: number | undefined = undefined;
+
+        if (progression?.lastWorkout?.avgWeight) {
+          suggestedWeight = progression.lastWorkout.avgWeight;
+
+          // Adjust based on progression recommendation
+          if (progression.recommendation === 'INCREASE_WEIGHT') {
+            suggestedWeight += 5; // Add 5 lbs
+          } else if (progression.recommendation === 'MORE_REPS') {
+            targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15
+          }
+        }
+
+        await prisma.workoutExercise.create({
+          data: {
+            workoutId: newWorkout.id,
+            exerciseId: exercise.id,
+            orderIndex: templateExercise.orderIndex,
+            targetSets,
+            targetReps,
+            suggestedWeight,
+          },
+        });
+      } else {
+        // For cardio exercises, use template targets directly
+        await prisma.workoutExercise.create({
+          data: {
+            workoutId: newWorkout.id,
+            exerciseId: exercise.id,
+            orderIndex: templateExercise.orderIndex,
+            targetSets: templateExercise.targetSets || 1,
+            targetReps: templateExercise.targetReps || 1,
+          },
+        });
+      }
+    }
+
+    // Return the new workout with exercises
+    return this.getWorkoutById(userId, newWorkout.id);
+  }
+
+  async createWorkoutFromPreviousWorkout(userId: string, templateWorkoutId: string, name: string) {
+    // Get the template workout
+    const template = await prisma.workout.findFirst({
+      where: {
+        id: templateWorkoutId,
+        userId,
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+          },
+        },
+      },
+    });
+
+    if (!template) {
+      throw new Error('Template workout not found');
+    }
+
+    // Create new workout
+    const newWorkout = await prisma.workout.create({
+      data: {
+        userId,
+        name,
+        status: WorkoutStatus.IN_PROGRESS,
+      },
+    });
+
+    // Copy exercises with progression-based adjustments
+    for (const templateExercise of template.workoutExercises) {
+      // Get progression recommendation for this exercise
+      const progression = await progressionService.getProgressionForExercise(
+        userId,
+        templateExercise.exerciseId
+      );
+
+      let targetSets = templateExercise.targetSets;
+      let targetReps = templateExercise.targetReps;
+      let suggestedWeight: number | undefined = undefined;
+
+      if (progression?.lastWorkout?.avgWeight) {
+        suggestedWeight = progression.lastWorkout.avgWeight;
+
+        // Adjust based on progression recommendation
+        if (progression.recommendation === 'INCREASE_WEIGHT') {
+          suggestedWeight += 5; // Add 5 lbs
+        } else if (progression.recommendation === 'MORE_REPS') {
+          targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15
+        }
+      }
+
+      await prisma.workoutExercise.create({
+        data: {
+          workoutId: newWorkout.id,
+          exerciseId: templateExercise.exerciseId,
+          orderIndex: templateExercise.orderIndex,
+          targetSets,
+          targetReps,
+          suggestedWeight,
+        },
+      });
+    }
+
+    // Return the new workout with exercises
+    return this.getWorkoutById(userId, newWorkout.id);
+  }
+
+  async saveWorkoutAsTemplate(
+    userId: string,
+    workoutId: string,
+    data: SaveWorkoutAsTemplateDto
+  ) {
+    // Fetch the workout with all exercises
+    const workout = await prisma.workout.findFirst({
+      where: {
+        id: workoutId,
+        userId,
+      },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+          },
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
+    });
+
+    // Validate workout exists and belongs to user
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    // Validate workout is ad-hoc (not created from a template)
+    if (workout.templateId !== null) {
+      throw new Error('Cannot save template-based workout as a new template');
+    }
+
+    // Validate workout has at least one exercise
+    if (workout.workoutExercises.length === 0) {
+      throw new Error('Cannot save empty workout as template');
+    }
+
+    // Create template with all exercises in a transaction
+    const template = await prisma.$transaction(async (tx) => {
+      // Create the workout template
+      const newTemplate = await tx.workoutTemplate.create({
+        data: {
+          userId,
+          name: data.name,
+          description: data.description,
+          color: data.color,
+          isActive: true,
+        },
+      });
+
+      // Create template exercises from workout exercises
+      for (const workoutExercise of workout.workoutExercises) {
+        await tx.templateExercise.create({
+          data: {
+            templateId: newTemplate.id,
+            exerciseId: workoutExercise.exerciseId,
+            orderIndex: workoutExercise.orderIndex,
+            targetSets: workoutExercise.targetSets,
+            targetReps: workoutExercise.targetReps,
+          },
+        });
+      }
+
+      // Fetch the complete template with exercises
+      const completeTemplate = await tx.workoutTemplate.findUnique({
+        where: { id: newTemplate.id },
+        include: {
+          templateExercises: {
+            include: {
+              exercise: true,
+            },
+            orderBy: { orderIndex: 'asc' },
+          },
+        },
+      });
+
+      return completeTemplate;
+    });
+
+    return template;
+  }
+}
+
+export const workoutService = new WorkoutService();
