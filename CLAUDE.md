@@ -43,17 +43,25 @@ The frontend uses:
 - Axios with request/response interceptors for API calls and automatic token refresh
 - Protected routes wrapper for authenticated pages
 - LocalStorage for stopwatch state persistence
+- Recharts for dashboard analytics and charts
+- react-big-calendar for workout scheduling calendar view
 
 ### Database Schema (Prisma)
 
 Core entities and relationships:
 - **User** → **Workout** (1:many) - Each user has many workouts
+- **User** → **Exercise** (1:many, optional) - Users can create custom exercises (userId=null for shared library)
 - **Workout** → **WorkoutExercise** (1:many) - Each workout contains multiple exercises
 - **Exercise** → **WorkoutExercise** (1:many) - Exercise library referenced by workouts
 - **WorkoutExercise** → **Set** (1:many) - Each exercise instance has multiple sets logged
 - **User + Exercise** → **ExerciseProgression** (unique pair) - Progression tracking per user/exercise
+- **MuscleGroup** / **ExerciseCategory** - Lookup tables for exercise classification
+- **WorkoutTemplate** → **TemplateExercise** (1:many) - Saved workout templates
+- **WorkoutSchedule** - Maps templates to days of the week (unique userId+dayOfWeek)
 
-Important: The `Exercise` table is a shared library (seeded with 40+ exercises). `WorkoutExercise` is the instance of an exercise within a specific workout.
+Exercise types: `STRENGTH` (reps/weight/rpe) and `CARDIO` (duration/distance/calories with MET values).
+
+Important: The `Exercise` table contains both shared library exercises (userId=null, seeded with 40+ exercises) and user-created custom exercises. `WorkoutExercise` is the instance of an exercise within a specific workout.
 
 ## Development Commands
 
@@ -93,6 +101,7 @@ npx prisma studio            # Open Prisma GUI at http://localhost:5555
 npx prisma migrate dev       # Create and apply migrations
 npm run prisma:seed          # Seed exercise library
 npx prisma generate          # Regenerate Prisma Client after schema changes
+npm run generate-history     # Generate sample workout history data
 ```
 
 ### Frontend Commands
@@ -249,10 +258,6 @@ kubectl exec -it <backend-pod-name> -n workout-tracker -- npm run prisma:seed
 ```
 
 ## Important Implementation Details
-
-### Why WorkoutExercise Exists
-
-The `Exercise` table is a shared library of exercises (e.g., "Barbell Bench Press"). When a user adds an exercise to their workout, a `WorkoutExercise` is created that references the `Exercise` and contains workout-specific data (target sets/reps, completion status, order in workout). Sets are logged against `WorkoutExercise`, not `Exercise`.
 
 ### Password Security
 
