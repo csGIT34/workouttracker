@@ -1,8 +1,9 @@
-export enum ProgressionRecommendation {
-  INCREASE_WEIGHT = 'INCREASE_WEIGHT',
-  MORE_REPS = 'MORE_REPS',
-  MAINTAIN = 'MAINTAIN'
-}
+export const ProgressionRecommendation = {
+  INCREASE_WEIGHT: 'INCREASE_WEIGHT',
+  MORE_REPS: 'MORE_REPS',
+  MAINTAIN: 'MAINTAIN'
+} as const;
+export type ProgressionRecommendation = (typeof ProgressionRecommendation)[keyof typeof ProgressionRecommendation];
 
 export interface ExerciseProgression {
   id: string;

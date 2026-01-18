@@ -1,9 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtPayload } from '@workout-tracker/shared';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: JwtPayload;
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: JwtPayload;
+    user: JwtPayload;
   }
 }
 
@@ -28,7 +29,7 @@ export async function optionalAuthenticate(
     request.user = decoded;
   } catch (error) {
     // Don't fail if no token - just continue without user
-    request.user = undefined;
+    // request.user remains undefined
   }
 }
 

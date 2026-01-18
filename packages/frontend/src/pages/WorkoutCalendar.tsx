@@ -463,7 +463,7 @@ export default function WorkoutCalendar() {
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
               {selectedEvent.templateId
                 ? selectedEvent.type === 'missed'
-                  ? selectedEvent.title.replace(' ✗', '')
+                  ? String(selectedEvent.title || '').replace(' ✗', '')
                   : selectedEvent.title
                 : `Schedule Workout - ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedEvent.dayOfWeek || 0]}`}
             </h2>

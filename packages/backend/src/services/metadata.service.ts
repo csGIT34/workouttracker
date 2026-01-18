@@ -41,7 +41,7 @@ export class MetadataService {
   async deleteMuscleGroup(id: string) {
     // Check if any exercises use this muscle group
     const exerciseCount = await prisma.exercise.count({
-      where: { muscleGroup: { equals: (await prisma.muscleGroup.findUnique({ where: { id } }))?.name } },
+      where: { muscleGroupId: id },
     });
 
     return prisma.muscleGroup.delete({
@@ -89,7 +89,7 @@ export class MetadataService {
   async deleteCategory(id: string) {
     // Check if any exercises use this category
     const exerciseCount = await prisma.exercise.count({
-      where: { category: { equals: (await prisma.exerciseCategory.findUnique({ where: { id } }))?.name } },
+      where: { categoryId: id },
     });
 
     return prisma.exerciseCategory.delete({

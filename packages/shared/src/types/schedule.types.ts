@@ -35,4 +35,11 @@ export interface MonthScheduleEntry {
     status: string;
     completedAt: Date | null;
   };
+  workouts?: {
+    id: string;
+    name: string;
+    status: string;
+    completedAt: Date | null;
+    templateId: string | null;
+  }[];
 }

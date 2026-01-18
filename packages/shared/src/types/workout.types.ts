@@ -1,8 +1,9 @@
-export enum WorkoutStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
-}
+export const WorkoutStatus = {
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const;
+export type WorkoutStatus = (typeof WorkoutStatus)[keyof typeof WorkoutStatus];
 
 export interface Set {
   id: string;
@@ -34,6 +35,9 @@ export interface WorkoutExercise {
   suggestedWeight?: number;
   completed: boolean;
   restBetweenSets?: number; // in seconds
+  // Cardio-specific targets
+  targetDurationMinutes?: number;
+  targetDistanceMiles?: number;
   exercise?: {
     id: string;
     name: string;

@@ -36,9 +36,9 @@ export class ProgressionService {
       return null;
     }
 
-    // Calculate averages
-    const avgWeight = allSets.reduce((sum, set) => sum + set.weight, 0) / allSets.length;
-    const avgReps = allSets.reduce((sum, set) => sum + set.reps, 0) / allSets.length;
+    // Calculate averages (filter for strength sets with weight/reps)
+    const avgWeight = allSets.reduce((sum, set) => sum + (set.weight ?? 0), 0) / allSets.length;
+    const avgReps = allSets.reduce((sum, set) => sum + (set.reps ?? 0), 0) / allSets.length;
 
     // Calculate average RPE (only from sets that have RPE logged)
     const setsWithRPE = allSets.filter(set => set.rpe !== null);

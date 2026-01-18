@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: workout-frontend:latest
-          imagePullPolicy: IfNotPresent
+          image: csdock34/workout-frontend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:

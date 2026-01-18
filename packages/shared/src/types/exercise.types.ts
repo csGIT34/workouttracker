@@ -1,24 +1,27 @@
-export enum MuscleGroup {
-  CHEST = 'CHEST',
-  BACK = 'BACK',
-  SHOULDERS = 'SHOULDERS',
-  LEGS = 'LEGS',
-  ARMS = 'ARMS',
-  CORE = 'CORE'
-}
+export const MuscleGroup = {
+  CHEST: 'CHEST',
+  BACK: 'BACK',
+  SHOULDERS: 'SHOULDERS',
+  LEGS: 'LEGS',
+  ARMS: 'ARMS',
+  CORE: 'CORE'
+} as const;
+export type MuscleGroup = (typeof MuscleGroup)[keyof typeof MuscleGroup];
 
-export enum ExerciseCategory {
-  BARBELL = 'BARBELL',
-  DUMBBELL = 'DUMBBELL',
-  MACHINE = 'MACHINE',
-  BODYWEIGHT = 'BODYWEIGHT',
-  CABLE = 'CABLE'
-}
+export const ExerciseCategory = {
+  BARBELL: 'BARBELL',
+  DUMBBELL: 'DUMBBELL',
+  MACHINE: 'MACHINE',
+  BODYWEIGHT: 'BODYWEIGHT',
+  CABLE: 'CABLE'
+} as const;
+export type ExerciseCategory = (typeof ExerciseCategory)[keyof typeof ExerciseCategory];
 
-export enum ExerciseType {
-  STRENGTH = 'STRENGTH',
-  CARDIO = 'CARDIO'
-}
+export const ExerciseType = {
+  STRENGTH: 'STRENGTH',
+  CARDIO: 'CARDIO'
+} as const;
+export type ExerciseType = (typeof ExerciseType)[keyof typeof ExerciseType];
 
 export interface MuscleGroupData {
   id: string;

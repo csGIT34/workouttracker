@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: workout-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: csdock34/workout-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
