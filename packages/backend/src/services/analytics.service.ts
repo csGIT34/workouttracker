@@ -278,7 +278,7 @@ export class AnalyticsService {
         weekStart: new Date(weekKey),
         workoutCount: count,
       }))
-      .sort((a, b) => a.weekStart.getTime() - b.workStart.getTime());
+      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
   }
 
   async getMuscleGroupDistribution(
@@ -315,8 +315,8 @@ export class AnalyticsService {
 
     workoutExercises.forEach((we) => {
       if (we.exercise.muscleGroup) {
-        const group = we.exercise.muscleGroup;
-        distribution.set(group, (distribution.get(group) || 0) + 1);
+        const groupName = we.exercise.muscleGroup.name;
+        distribution.set(groupName, (distribution.get(groupName) || 0) + 1);
         total++;
       }
     });
@@ -384,7 +384,7 @@ export class AnalyticsService {
                 exerciseName,
                 exerciseType,
                 maxDistance: set.distanceMiles,
-                bestTime: set.durationMinutes,
+                bestTime: set.durationMinutes ?? undefined,
                 date: we.workout.completedAt!,
               });
             }

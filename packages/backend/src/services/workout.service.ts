@@ -371,7 +371,7 @@ export class WorkoutService {
           suggestedWeight = progression.lastWorkout.avgWeight;
 
           // Adjust based on progression recommendation
-          if (progression.recommendation === 'INCREASE_WEIGHT') {
+          if (progression.recommendation === 'INCREASE_WEIGHT' && suggestedWeight !== undefined) {
             suggestedWeight += 5; // Add 5 lbs
           } else if (progression.recommendation === 'MORE_REPS') {
             targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15
@@ -451,7 +451,7 @@ export class WorkoutService {
         suggestedWeight = progression.lastWorkout.avgWeight;
 
         // Adjust based on progression recommendation
-        if (progression.recommendation === 'INCREASE_WEIGHT') {
+        if (progression.recommendation === 'INCREASE_WEIGHT' && suggestedWeight !== undefined) {
           suggestedWeight += 5; // Add 5 lbs
         } else if (progression.recommendation === 'MORE_REPS') {
           targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15

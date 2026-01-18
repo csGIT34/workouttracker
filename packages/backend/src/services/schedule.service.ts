@@ -179,7 +179,17 @@ export class ScheduleService {
     });
 
     // Build calendar data
-    const calendarData = [];
+    const calendarData: Array<{
+      date: Date;
+      schedule: typeof schedules[number] | undefined;
+      workouts: Array<{
+        id: string;
+        name: string;
+        status: string;
+        completedAt: Date | null;
+        templateId: string | null;
+      }>;
+    }> = [];
     const daysInMonth = new Date(year, month, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day++) {

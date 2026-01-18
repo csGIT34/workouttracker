@@ -1,24 +1,28 @@
-export enum UserRole {
-  USER = 'USER',
-  ADMIN = 'ADMIN'
-}
+export const UserRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN'
+} as const;
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
-export enum WeightUnit {
-  LBS = 'LBS',
-  KG = 'KG'
-}
+export const WeightUnit = {
+  LBS: 'LBS',
+  KG: 'KG'
+} as const;
+export type WeightUnit = (typeof WeightUnit)[keyof typeof WeightUnit];
 
-export enum HeightUnit {
-  INCHES = 'INCHES',
-  CM = 'CM'
-}
+export const HeightUnit = {
+  INCHES: 'INCHES',
+  CM: 'CM'
+} as const;
+export type HeightUnit = (typeof HeightUnit)[keyof typeof HeightUnit];
 
-export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE',
-  OTHER = 'OTHER',
-  PREFER_NOT_TO_SAY = 'PREFER_NOT_TO_SAY'
-}
+export const Gender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+  OTHER: 'OTHER',
+  PREFER_NOT_TO_SAY: 'PREFER_NOT_TO_SAY'
+} as const;
+export type Gender = (typeof Gender)[keyof typeof Gender];
 
 export interface User {
   id: string;

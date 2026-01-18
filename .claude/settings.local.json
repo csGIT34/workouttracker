@@ -13,7 +13,18 @@
       "Bash(taskkill:*)",
       "Bash(powershell -Command \"Stop-Process -Id 1420 -Force; Stop-Process -Id 22376 -Force\")",
       "Bash(npm run dev:backend:*)",
-      "Bash(timeout /t 3 /nobreak)"
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(docker build:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(npx -w @workout-tracker/backend tsc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(docker save:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl get:*)",
+      "Bash(docker push:*)",
+      "Bash(kubectl rollout:*)",
+      "Bash(kubectl rollout status:*)"
     ]
   }
 }

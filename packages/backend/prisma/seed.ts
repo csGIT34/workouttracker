@@ -375,6 +375,20 @@ async function main() {
     },
   ];
 
+  // Get muscle groups and categories for lookup
+  const muscleGroupMap = new Map<string, string>();
+  const categoryMap = new Map<string, string>();
+
+  const allMuscleGroups = await prisma.muscleGroup.findMany();
+  for (const mg of allMuscleGroups) {
+    muscleGroupMap.set(mg.name, mg.id);
+  }
+
+  const allCategories = await prisma.exerciseCategory.findMany();
+  for (const cat of allCategories) {
+    categoryMap.set(cat.name, cat.id);
+  }
+
   let createdCount = 0;
   let updatedCount = 0;
 
@@ -384,9 +398,19 @@ async function main() {
       where: { name: exercise.name },
     });
 
+    const muscleGroupId = muscleGroupMap.get(exercise.muscleGroup);
+    const categoryId = categoryMap.get(exercise.category);
+
     if (!existing) {
       await prisma.exercise.create({
-        data: exercise,
+        data: {
+          name: exercise.name,
+          description: exercise.description,
+          type: exercise.type || 'STRENGTH',
+          metValue: exercise.metValue,
+          muscleGroupId,
+          categoryId,
+        },
       });
       createdCount++;
     } else {
@@ -396,6 +420,8 @@ async function main() {
         data: {
           description: exercise.description,
           metValue: exercise.metValue,
+          muscleGroupId,
+          categoryId,
         },
       });
       updatedCount++;
