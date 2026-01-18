@@ -9,6 +9,7 @@ import {
   SaveWorkoutAsTemplateDto,
 } from '@workout-tracker/shared';
 import { progressionService } from './progression.service.js';
+import { calorieService } from './calorie.service.js';
 
 export class WorkoutService {
   async createWorkout(userId: string, data: CreateWorkoutDto) {
@@ -176,6 +177,14 @@ export class WorkoutService {
 
     // Update progression for all exercises in this workout
     await progressionService.updateProgressionsAfterWorkout(userId, workoutId);
+
+    // Calculate and update calorie data
+    try {
+      await calorieService.updateWorkoutCalories(workoutId, userId);
+    } catch (error) {
+      console.error('Failed to calculate workout calories:', error);
+      // Don't fail the workout completion if calorie calculation fails
+    }
 
     return updatedWorkout;
   }

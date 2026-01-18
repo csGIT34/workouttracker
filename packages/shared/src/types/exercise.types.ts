@@ -44,6 +44,7 @@ export interface Exercise {
   muscleGroup?: MuscleGroupData | null;
   category?: ExerciseCategoryData | null;
   type: ExerciseType;
+  metValue?: number | null; // MET value for cardio exercises
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +55,7 @@ export interface CreateExerciseDto {
   muscleGroupId?: string;
   categoryId?: string;
   type?: ExerciseType;
+  metValue?: number;
 }
 
 export interface UpdateExerciseDto {
@@ -62,4 +64,5 @@ export interface UpdateExerciseDto {
   muscleGroupId?: string;
   categoryId?: string;
   type?: ExerciseType;
+  metValue?: number;
 }

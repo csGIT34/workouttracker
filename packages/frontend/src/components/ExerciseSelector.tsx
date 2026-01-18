@@ -32,6 +32,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
   const [targetReps, setTargetReps] = useState(10);
   const [targetDurationMinutes, setTargetDurationMinutes] = useState(30);
   const [targetDistanceMiles, setTargetDistanceMiles] = useState(3);
+  const [restBetweenSets, setRestBetweenSets] = useState(90); // in seconds, default 90s
   const [filterMuscleGroup, setFilterMuscleGroup] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
   const [search, setSearch] = useState('');
@@ -52,7 +53,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
   };
 
   const filteredExercises = exercises.filter((ex) => {
-    const matchesMuscle = !filterMuscleGroup || ex.muscleGroup === filterMuscleGroup;
+    const matchesMuscle = !filterMuscleGroup || ex.muscleGroup?.name === filterMuscleGroup;
     const matchesType = !filterType || ex.type === filterType;
     const matchesSearch = !search || ex.name.toLowerCase().includes(search.toLowerCase());
     return matchesMuscle && matchesType && matchesSearch;
@@ -104,6 +105,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
           exerciseId: selectedExercise.id,
           targetSets,
           targetReps,
+          restBetweenSets: selectedExercise.type === ExerciseType.STRENGTH ? restBetweenSets : undefined,
         });
       }
       onClose();
@@ -198,7 +200,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                 {exercise.type === ExerciseType.CARDIO
                   ? 'Cardio'
-                  : `${exercise.muscleGroup} • ${exercise.category}`
+                  : `${exercise.muscleGroup?.name || 'Unknown'} • ${exercise.category?.name || 'Unknown'}`
                 }
               </div>
             </div>
@@ -262,34 +264,60 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-                    Target Sets
-                  </label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={targetSets}
-                    onChange={(e) => setTargetSets(Number(e.target.value))}
-                    min={1}
-                    max={10}
-                  />
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                      Target Sets
+                    </label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={targetSets}
+                      onChange={(e) => setTargetSets(Number(e.target.value))}
+                      min={1}
+                      max={10}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                      Target Reps
+                    </label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={targetReps}
+                      onChange={(e) => setTargetReps(Number(e.target.value))}
+                      min={1}
+                      max={50}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-                    Target Reps
+                    Rest Between Sets
                   </label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={targetReps}
-                    onChange={(e) => setTargetReps(Number(e.target.value))}
-                    min={1}
-                    max={50}
-                  />
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {[30, 60, 90, 120, 180].map((seconds) => (
+                      <button
+                        key={seconds}
+                        type="button"
+                        onClick={() => setRestBetweenSets(seconds)}
+                        className="btn"
+                        style={{
+                          padding: '0.5rem 1rem',
+                          flex: '1 1 auto',
+                          backgroundColor: restBetweenSets === seconds ? 'var(--primary)' : 'var(--background)',
+                          color: restBetweenSets === seconds ? 'white' : 'var(--text)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
+                        {seconds < 60 ? `${seconds}s` : `${seconds / 60}min`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         )}

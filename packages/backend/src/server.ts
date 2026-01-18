@@ -12,6 +12,7 @@ import { templateRoutes } from './routes/template.routes.js';
 import { scheduleRoutes } from './routes/schedule.routes.js';
 import { analyticsRoutes } from './routes/analytics.routes.js';
 import { metadataRoutes } from './routes/metadata.routes.js';
+import { userRoutes } from './routes/user.routes.js';
 import { prisma } from './lib/prisma.js';
 
 dotenv.config();
@@ -58,6 +59,7 @@ fastify.get('/ready', async () => {
 
 // Register routes
 await fastify.register(authRoutes, { prefix: '/api/v1/auth' });
+await fastify.register(userRoutes, { prefix: '/api/v1/users' });
 await fastify.register(workoutRoutes, { prefix: '/api/v1/workouts' });
 await fastify.register(exerciseRoutes, { prefix: '/api/v1/exercises' });
 await fastify.register(progressionRoutes, { prefix: '/api/v1/progression' });

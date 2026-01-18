@@ -20,6 +20,23 @@ enum UserRole {
   ADMIN
 }
 
+enum WeightUnit {
+  LBS
+  KG
+}
+
+enum HeightUnit {
+  INCHES
+  CM
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -29,6 +46,15 @@ model User {
   role      UserRole @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Biometric fields for calorie tracking
+  weight             Float?
+  weightUnit         WeightUnit @default(LBS)
+  height             Float?
+  heightUnit         HeightUnit @default(INCHES)
+  age                Int?
+  gender             Gender?
+  profileCompletedAt DateTime?
 
   workouts              Workout[]
   exerciseProgressions  ExerciseProgression[]
@@ -70,6 +96,7 @@ model Exercise {
   muscleGroupId    String?
   categoryId       String?
   type             ExerciseType @default(STRENGTH)
+  metValue         Float?       // MET value for cardio exercises
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -97,6 +124,11 @@ model Workout {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Calorie tracking fields
+  totalCaloriesBurned Int?
+  totalActiveTime     Int? // in seconds
+  totalRestTime       Int? // in seconds
+
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   template         WorkoutTemplate?  @relation(fields: [templateId], references: [id])
   workoutExercises WorkoutExercise[]
@@ -116,6 +148,7 @@ model WorkoutExercise {
   targetReps      Int
   suggestedWeight Float?
   completed       Boolean  @default(false)
+  restBetweenSets Int?     // in seconds (30, 120, 180, etc.)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

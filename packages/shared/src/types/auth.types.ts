@@ -10,6 +10,8 @@ export interface RegisterDto {
   lastName: string;
 }
 
+import { WeightUnit, HeightUnit, Gender } from './user.types.js';
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -19,6 +21,13 @@ export interface AuthResponse {
     firstName: string;
     lastName: string;
     role: string;
+    weight?: number | null;
+    weightUnit: WeightUnit;
+    height?: number | null;
+    heightUnit: HeightUnit;
+    age?: number | null;
+    gender?: Gender | null;
+    profileCompletedAt?: Date | null;
   };
 }
 

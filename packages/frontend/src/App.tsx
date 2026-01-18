@@ -13,8 +13,7 @@ import ExerciseManager from './pages/ExerciseManager'
 import ExerciseForm from './pages/ExerciseForm'
 import AdminPanel from './pages/AdminPanel'
 import AdminExerciseForm from './pages/AdminExerciseForm'
-import SchedulePlanner from './pages/SchedulePlanner'
-import WorkoutCalendar from './pages/WorkoutCalendar'
+import Schedule from './pages/Schedule'
 import ProgressCharts from './pages/ProgressCharts'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -45,8 +44,7 @@ function App() {
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/admin/exercises/new" element={<AdminExerciseForm />} />
                 <Route path="/admin/exercises/:id/edit" element={<AdminExerciseForm />} />
-                <Route path="/schedule" element={<SchedulePlanner />} />
-                <Route path="/calendar" element={<WorkoutCalendar />} />
+                <Route path="/schedule" element={<Schedule />} />
                 <Route path="/progress" element={<ProgressCharts />} />
               </Route>
             </Route>

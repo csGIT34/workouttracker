@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
+import { useAuth } from '../contexts/AuthContext';
 import api, { scheduleAPI, workoutAPI, analyticsAPI } from '../services/api';
-import { WorkoutSchedule, PersonalRecord } from '@workout-tracker/shared';
+import { WorkoutSchedule, PersonalRecord, ExerciseType } from '@workout-tracker/shared';
 import ActiveWorkoutModal from '../components/ActiveWorkoutModal';
+import UserProfileModal from '../components/UserProfileModal';
 
 interface WorkoutStats {
   totalWorkouts: number;
@@ -54,11 +56,25 @@ interface VolumeComparison {
   percentChange: number;
 }
 
+interface CalorieComparison {
+  thisWeek: number;
+  lastWeek: number;
+  percentChange: number;
+}
+
 interface MonthlySummary {
   totalVolume: number;
+  totalCalories: number;
   averageDuration: number;
   workoutCount: number;
   topMuscleGroups: Array<{ name: string; count: number }>;
+}
+
+interface CardioDistanceStats {
+  exerciseName: string;
+  totalDistance: number;
+  totalDuration: number;
+  workoutCount: number;
 }
 
 interface RecentActivity {
@@ -81,14 +97,19 @@ export default function Dashboard() {
   const [todayCompletedWorkout, setTodayCompletedWorkout] = useState<CompletedWorkout | null>(null);
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [volumeComparison, setVolumeComparison] = useState<VolumeComparison | null>(null);
+  const [calorieComparison, setCalorieComparison] = useState<CalorieComparison | null>(null);
   const [recentPRs, setRecentPRs] = useState<PersonalRecord[]>([]);
   const [weeklySchedule, setWeeklySchedule] = useState<WorkoutSchedule[]>([]);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [weeklyCardioDistance, setWeeklyCardioDistance] = useState<CardioDistanceStats[]>([]);
+  const [monthlyCardioDistance, setMonthlyCardioDistance] = useState<CardioDistanceStats[]>([]);
   const [activeWorkoutModalOpen, setActiveWorkoutModalOpen] = useState(false);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
   const { createWorkout } = useWorkout();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -101,10 +122,13 @@ export default function Dashboard() {
           activeRes,
           streakRes,
           volumeCompRes,
+          calorieCompRes,
           recentPRsRes,
           weeklyScheduleRes,
           monthlySummaryRes,
           recentActivityRes,
+          weeklyCardioRes,
+          monthlyCardioRes,
         ] = await Promise.all([
           api.get('/api/v1/workouts/stats'),
           api.get('/api/v1/workouts/recent'),
@@ -112,10 +136,13 @@ export default function Dashboard() {
           workoutAPI.getActive(),
           analyticsAPI.getStreak(),
           analyticsAPI.getVolumeComparison(),
+          api.get('/api/v1/analytics/calories/comparison'),
           analyticsAPI.getRecentPRs(3),
           scheduleAPI.getWeekly(),
           analyticsAPI.getMonthlySummary(),
           analyticsAPI.getRecentActivity(5),
+          api.get('/api/v1/analytics/cardio/distance?period=week'),
+          api.get('/api/v1/analytics/cardio/distance?period=month'),
         ]);
 
         setStats(statsRes.data);
@@ -124,10 +151,13 @@ export default function Dashboard() {
         setActiveWorkout(activeRes.data);
         setStreak(streakRes.data);
         setVolumeComparison(volumeCompRes.data);
+        setCalorieComparison(calorieCompRes.data);
         setRecentPRs(recentPRsRes.data);
         setWeeklySchedule(weeklyScheduleRes.data);
         setMonthlySummary(monthlySummaryRes.data);
         setRecentActivity(recentActivityRes.data);
+        setWeeklyCardioDistance(weeklyCardioRes.data);
+        setMonthlyCardioDistance(monthlyCardioRes.data);
 
         // Check if today's scheduled workout was completed
         if (scheduleRes.data?.templateId) {
@@ -288,6 +318,37 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Profile Setup Prompt */}
+      {user && !user.weight && (
+        <div className="card" style={{
+          marginBottom: '2rem',
+          backgroundColor: '#f59e0b',
+          color: 'white',
+          borderLeft: '4px solid #d97706'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+            <span style={{ fontSize: '2rem' }}>⚠️</span>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', margin: 0 }}>
+              Complete Your Profile
+            </h2>
+          </div>
+          <p style={{ marginBottom: '1rem', opacity: 0.9 }}>
+            Set up your weight and other biometric data to enable calorie tracking during workouts. This helps you monitor your progress and reach your fitness goals.
+          </p>
+          <button
+            onClick={() => setProfileModalOpen(true)}
+            className="btn"
+            style={{
+              backgroundColor: 'white',
+              color: '#f59e0b',
+              fontWeight: 'bold',
+            }}
+          >
+            Set Up Profile Now
+          </button>
+        </div>
+      )}
+
       {(activeWorkout || todaySchedule || todayCompletedWorkout) && (
         <div className="card" style={{
           marginBottom: '2rem',
@@ -337,91 +398,170 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', marginBottom: '2rem' }}>
-        {/* Workout Streak */}
-        {streak && (
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>🔥</span>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: '600', margin: 0 }}>Workout Streak</h2>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                {streak.currentStreak}
+      {/* Weekly Stats Section */}
+      <div style={{ marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)' }}>
+          This Week
+        </h2>
+        <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+          {/* Workout Streak */}
+          {streak && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🔥</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Streak</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                  {streak.currentStreak}
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  {streak.currentStreak === 1 ? 'day' : 'days'}
+                </div>
               </div>
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                {streak.currentStreak === 1 ? 'day' : 'days'}
+                Best: {streak.longestStreak} {streak.longestStreak === 1 ? 'day' : 'days'}
               </div>
             </div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Best: {streak.longestStreak} {streak.longestStreak === 1 ? 'day' : 'days'}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Weekly Volume Comparison */}
-        {volumeComparison && (
+          {/* This Week Workouts */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>📈</span>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: '600', margin: 0 }}>Weekly Volume</h2>
+              <span style={{ fontSize: '1.5rem' }}>📊</span>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Workouts</h3>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                {Math.round(volumeComparison.thisWeek).toLocaleString()}
+                {stats.weekWorkouts}
               </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>lbs</div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>workouts</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-              <span style={{ color: volumeComparison.percentChange >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                {volumeComparison.percentChange >= 0 ? '↑' : '↓'} {Math.abs(volumeComparison.percentChange).toFixed(1)}%
-              </span>
-              <span style={{ color: 'var(--text-secondary)' }}>vs last week</span>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Total: {stats.totalWorkouts} all-time
             </div>
           </div>
-        )}
 
-        {/* This Week Stats */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>📊</span>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: '600', margin: 0 }}>This Week</h2>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-              {stats.weekWorkouts}
+          {/* Weekly Volume */}
+          {volumeComparison && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>📈</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Volume</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                  {Math.round(volumeComparison.thisWeek / 1000).toLocaleString()}k
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>lbs</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <span style={{ color: volumeComparison.percentChange >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                  {volumeComparison.percentChange >= 0 ? '↑' : '↓'} {Math.abs(volumeComparison.percentChange).toFixed(1)}%
+                </span>
+                <span style={{ color: 'var(--text-secondary)' }}>vs last week</span>
+              </div>
             </div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>workouts</div>
-          </div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Total: {stats.totalWorkouts} all-time
-          </div>
+          )}
+
+          {/* Weekly Calories */}
+          {calorieComparison && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🔥</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Calories</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                  {calorieComparison.thisWeek.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>kcal</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <span style={{ color: calorieComparison.percentChange >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                  {calorieComparison.percentChange >= 0 ? '↑' : '↓'} {Math.abs(calorieComparison.percentChange).toFixed(1)}%
+                </span>
+                <span style={{ color: 'var(--text-secondary)' }}>vs last week</span>
+              </div>
+            </div>
+          )}
+
+          {/* Weekly Cardio Distance */}
+          {weeklyCardioDistance.length > 0 && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🏃</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Cardio</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {weeklyCardioDistance.slice(0, 3).map((cardio) => (
+                  <div key={cardio.exerciseName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{cardio.exerciseName}:</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {cardio.totalDistance.toFixed(1)} mi
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Monthly Summary */}
-        {monthlySummary && (
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>📅</span>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: '600', margin: 0 }}>This Month</h2>
+      {/* Monthly Stats Section */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text)' }}>
+          This Month
+        </h2>
+        <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+          {/* Monthly Summary */}
+          {monthlySummary && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>📅</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Summary</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Workouts:</span>
+                  <span style={{ fontWeight: 600 }}>{monthlySummary.workoutCount}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Avg Duration:</span>
+                  <span style={{ fontWeight: 600 }}>{monthlySummary.averageDuration} min</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Volume:</span>
+                  <span style={{ fontWeight: 600 }}>{Math.round(monthlySummary.totalVolume / 1000).toLocaleString()}k lbs</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Calories:</span>
+                  <span style={{ fontWeight: 600 }}>{monthlySummary.totalCalories.toLocaleString()} kcal</span>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Workouts:</span>
-                <span style={{ fontWeight: 600 }}>{monthlySummary.workoutCount}</span>
+          )}
+
+          {/* Monthly Cardio Distance */}
+          {monthlyCardioDistance.length > 0 && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>🏃</span>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', margin: 0 }}>Cardio</h3>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Avg Session:</span>
-                <span style={{ fontWeight: 600 }}>{monthlySummary.averageDuration} min</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Total Volume:</span>
-                <span style={{ fontWeight: 600 }}>{Math.round(monthlySummary.totalVolume).toLocaleString()} lbs</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {monthlyCardioDistance.slice(0, 3).map((cardio) => (
+                  <div key={cardio.exerciseName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{cardio.exerciseName}:</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {cardio.totalDistance.toFixed(1)} mi
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Main Content Grid */}
@@ -507,7 +647,16 @@ export default function Dashboard() {
                   <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{pr.exerciseName}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
                     <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
-                      {pr.maxWeight} lbs × {pr.reps} reps
+                      {pr.exerciseType === ExerciseType.CARDIO ? (
+                        <>
+                          {pr.maxDistance?.toFixed(1)} mi
+                          {pr.bestTime && ` • ${Math.round(pr.bestTime)} min`}
+                        </>
+                      ) : (
+                        <>
+                          {pr.maxWeight} lbs × {pr.reps} reps
+                        </>
+                      )}
                     </span>
                     <span style={{ color: 'var(--text-secondary)' }}>
                       {new Date(pr.date).toLocaleDateString()}
@@ -657,6 +806,12 @@ export default function Dashboard() {
         onResume={handleResumeActiveWorkout}
         onCreateNew={handleCreateNewWorkout}
         onCancel={handleCancelActiveWorkoutModal}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
       />
     </div>
   );

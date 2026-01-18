@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import UserProfileModal from './UserProfileModal';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -68,16 +71,6 @@ export default function Layout() {
                 Schedule
               </Link>
               <Link
-                to="/calendar"
-                style={{
-                  color: location.pathname === '/calendar' ? 'var(--primary)' : 'var(--text)',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                }}
-              >
-                Calendar
-              </Link>
-              <Link
                 to="/progress"
                 style={{
                   color: location.pathname === '/progress' ? 'var(--primary)' : 'var(--text)',
@@ -116,6 +109,13 @@ export default function Layout() {
               {user?.firstName} {user?.lastName}
               {user?.role === 'ADMIN' && <span style={{ color: 'var(--primary)', marginLeft: '0.5rem' }}>(Admin)</span>}
             </span>
+            <button
+              onClick={() => setProfileModalOpen(true)}
+              className="btn btn-outline"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              ⚙️ Profile
+            </button>
             <button onClick={handleLogout} className="btn btn-outline">
               Logout
             </button>
@@ -128,6 +128,12 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+      />
     </div>
   );
 }
