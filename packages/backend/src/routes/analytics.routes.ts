@@ -60,6 +60,11 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
     return analyticsService.getWeeklyVolumeComparison(request.user!.userId);
   });
 
+  // Get weekly calorie comparison
+  fastify.get('/calories/comparison', async (request) => {
+    return analyticsService.getWeeklyCalorieComparison(request.user!.userId);
+  });
+
   // Get recent PRs
   fastify.get('/recent-prs', async (request) => {
     const { limit = 5 } = request.query as any;
@@ -75,5 +80,14 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
   fastify.get('/recent-activity', async (request) => {
     const { limit = 5 } = request.query as any;
     return analyticsService.getRecentActivity(request.user!.userId, Number(limit));
+  });
+
+  // Get cardio distance stats (weekly or monthly)
+  fastify.get('/cardio/distance', async (request) => {
+    const { period = 'week' } = request.query as any;
+    return analyticsService.getCardioDistanceStats(
+      request.user!.userId,
+      period as 'week' | 'month'
+    );
   });
 }

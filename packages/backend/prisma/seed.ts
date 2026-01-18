@@ -312,61 +312,71 @@ async function main() {
       category: 'CABLE',
     },
 
-    // Cardio exercises
+    // Cardio exercises with MET values
     {
       name: 'Running',
       description: 'Outdoor or treadmill running',
       type: 'CARDIO',
+      metValue: 9.0,
     },
     {
       name: 'Cycling',
       description: 'Stationary bike or outdoor cycling',
       type: 'CARDIO',
+      metValue: 7.5,
     },
     {
       name: 'Walking',
       description: 'Brisk walking or power walking',
       type: 'CARDIO',
+      metValue: 4.0,
     },
     {
       name: 'Swimming',
       description: 'Freestyle, backstroke, or other swimming styles',
       type: 'CARDIO',
+      metValue: 8.0,
     },
     {
       name: 'Rowing',
       description: 'Rowing machine or water rowing',
       type: 'CARDIO',
+      metValue: 8.5,
     },
     {
       name: 'Elliptical',
       description: 'Elliptical machine cardio',
       type: 'CARDIO',
+      metValue: 5.0,
     },
     {
       name: 'Jump Rope',
       description: 'Skipping rope cardio exercise',
       type: 'CARDIO',
+      metValue: 11.0,
     },
     {
       name: 'Stair Climbing',
       description: 'Stair machine or actual stairs',
       type: 'CARDIO',
+      metValue: 8.0,
     },
     {
       name: 'HIIT',
       description: 'High-intensity interval training',
       type: 'CARDIO',
+      metValue: 10.0,
     },
     {
       name: 'Boxing',
       description: 'Heavy bag work or boxing drills',
       type: 'CARDIO',
+      metValue: 9.0,
     },
   ];
 
   let createdCount = 0;
-  let skippedCount = 0;
+  let updatedCount = 0;
 
   for (const exercise of exercises) {
     // Check if exercise already exists by name
@@ -380,11 +390,19 @@ async function main() {
       });
       createdCount++;
     } else {
-      skippedCount++;
+      // Update existing exercise with new fields (like metValue and description)
+      await prisma.exercise.update({
+        where: { id: existing.id },
+        data: {
+          description: exercise.description,
+          metValue: exercise.metValue,
+        },
+      });
+      updatedCount++;
     }
   }
 
-  console.log(`Seed complete: ${createdCount} exercises created, ${skippedCount} already existed.`);
+  console.log(`Seed complete: ${createdCount} exercises created, ${updatedCount} exercises updated.`);
 
   if (existingExercisesCount === 0) {
     console.log(`Total exercises in database: ${exercises.length}`);

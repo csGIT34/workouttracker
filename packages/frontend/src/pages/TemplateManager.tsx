@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { templateAPI } from '../services/api';
-import { WorkoutTemplate } from '@workout-tracker/shared';
+import { WorkoutTemplate, ExerciseType } from '@workout-tracker/shared';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function TemplateManager() {
@@ -48,6 +48,27 @@ export default function TemplateManager() {
   const handleDeleteCancel = () => {
     setDeleteModalOpen(false);
     setTemplateToDelete(null);
+  };
+
+  const getTemplateIcon = (template: WorkoutTemplate): string => {
+    if (!template.templateExercises || template.templateExercises.length === 0) {
+      return '💪'; // Default to strength if no exercises
+    }
+
+    const exerciseTypes = template.templateExercises
+      .map(te => te.exercise?.type)
+      .filter(Boolean);
+
+    const hasStrength = exerciseTypes.some(type => type === ExerciseType.STRENGTH);
+    const hasCardio = exerciseTypes.some(type => type === ExerciseType.CARDIO);
+
+    if (hasCardio && !hasStrength) {
+      return '🏃'; // Cardio only
+    } else if (hasStrength && !hasCardio) {
+      return '💪'; // Strength only
+    } else {
+      return '🏋️'; // Mixed
+    }
   };
 
   if (loading) {
@@ -187,7 +208,7 @@ export default function TemplateManager() {
                   marginBottom: '1rem'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.25rem' }}>💪</span>
+                    <span style={{ fontSize: '1.25rem' }}>{getTemplateIcon(template)}</span>
                     <span style={{
                       fontSize: '0.875rem',
                       fontWeight: 600,

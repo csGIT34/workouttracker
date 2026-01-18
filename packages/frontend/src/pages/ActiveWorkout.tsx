@@ -1,20 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
-import { Exercise, WorkoutExercise } from '@workout-tracker/shared';
+import { useAuth } from '../contexts/AuthContext';
+import { Exercise, WorkoutExercise, ExerciseType } from '@workout-tracker/shared';
 import Stopwatch from '../components/Stopwatch';
 import ExerciseSelector from '../components/ExerciseSelector';
 import WorkoutExerciseCard from '../components/WorkoutExerciseCard';
 import SaveAsTemplateModal from '../components/SaveAsTemplateModal';
 import ConfirmModal from '../components/ConfirmModal';
+import UserProfileModal from '../components/UserProfileModal';
 
 export default function ActiveWorkout() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentWorkout, getWorkout, completeWorkout, deleteWorkout, saveWorkoutAsTemplate } = useWorkout();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [completedWorkoutData, setCompletedWorkoutData] = useState<{ id: string; name: string; templateId: string | null } | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -99,6 +103,72 @@ export default function ActiveWorkout() {
     setCompletedWorkoutData(null);
     navigate('/history');
   };
+
+  // Calculate current calories burned (real-time estimate)
+  const currentCalories = useMemo(() => {
+    if (!currentWorkout || !user?.weight) return null;
+
+    // Convert weight to kg if needed
+    const weightKg = user.weightUnit === 'KG' ? user.weight : user.weight / 2.20462;
+
+    let totalCalories = 0;
+
+    // RPE to MET mapping (same as backend)
+    const getRPEtoMET = (rpe?: number): number => {
+      if (!rpe) return 5.0;
+      if (rpe >= 1 && rpe <= 5) return 3.5;
+      if (rpe >= 6 && rpe <= 7) return 5.0;
+      if (rpe >= 8 && rpe <= 9) return 6.5;
+      if (rpe === 10) return 8.0;
+      return 5.0;
+    };
+
+    // Calculate calories for each exercise
+    currentWorkout.workoutExercises.forEach((workoutExercise) => {
+      const completedSets = workoutExercise.sets.filter((set) => set.completed);
+      if (completedSets.length === 0) return;
+
+      if (workoutExercise.exercise?.type === 'CARDIO') {
+        // Cardio calories - use user-entered value if available
+        completedSets.forEach((set) => {
+          if (set.caloriesBurned != null) {
+            // User manually entered calories
+            totalCalories += set.caloriesBurned;
+          } else if (set.durationMinutes) {
+            // Calculate based on duration and MET
+            const metValue = workoutExercise.exercise?.metValue || 6.0;
+            const durationHours = set.durationMinutes / 60;
+            totalCalories += metValue * weightKg * durationHours;
+          }
+        });
+      } else {
+        // Strength training calories
+        let activeCalories = 0;
+        completedSets.forEach((set) => {
+          if (set.reps) {
+            const metValue = getRPEtoMET(set.rpe ?? undefined);
+            const setDurationSeconds = set.reps * 5; // 5 seconds per rep
+            const durationHours = setDurationSeconds / 3600;
+            activeCalories += metValue * weightKg * durationHours;
+          }
+        });
+
+        // Rest period calories
+        const restBetweenSets = workoutExercise.restBetweenSets;
+        if (restBetweenSets && completedSets.length > 1) {
+          const REST_MET = 1.5;
+          const numberOfRestPeriods = completedSets.length - 1;
+          const totalRestSeconds = numberOfRestPeriods * restBetweenSets;
+          const restDurationHours = totalRestSeconds / 3600;
+          activeCalories += REST_MET * weightKg * restDurationHours;
+        }
+
+        totalCalories += activeCalories;
+      }
+    });
+
+    return Math.round(totalCalories);
+  }, [currentWorkout, user]);
 
   if (loading) {
     return <div>Loading workout...</div>;
@@ -195,11 +265,44 @@ export default function ActiveWorkout() {
           )}
         </div>
 
-        <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-            Rest Timer
-          </h2>
-          <Stopwatch />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              Rest Timer
+            </h2>
+            <Stopwatch />
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              Calories Burned
+            </h2>
+            <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+              {user?.weight ? (
+                <>
+                  <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                    {currentCalories !== null ? currentCalories : 0}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    kcal (estimate)
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    Set your weight to track calories
+                  </div>
+                  <button
+                    onClick={() => setShowProfileModal(true)}
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                  >
+                    Set Up Profile
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -232,6 +335,12 @@ export default function ActiveWorkout() {
         onConfirm={handleDeleteWorkout}
         onCancel={() => setDeleteModalOpen(false)}
         danger={true}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
       />
     </div>
   );

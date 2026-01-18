@@ -33,11 +33,14 @@ export interface WorkoutExercise {
   targetReps: number;
   suggestedWeight?: number;
   completed: boolean;
+  restBetweenSets?: number; // in seconds
   exercise?: {
     id: string;
     name: string;
     muscleGroup: string;
     category: string;
+    type?: string;
+    metValue?: number;
   };
   sets: Set[];
   createdAt: Date;
@@ -55,6 +58,11 @@ export interface Workout {
   workoutExercises: WorkoutExercise[];
   createdAt: Date;
   updatedAt: Date;
+
+  // Calorie tracking fields
+  totalCaloriesBurned?: number | null;
+  totalActiveTime?: number | null; // in seconds
+  totalRestTime?: number | null; // in seconds
 }
 
 export interface CreateWorkoutDto {
@@ -65,6 +73,7 @@ export interface AddExerciseToWorkoutDto {
   exerciseId: string;
   targetSets: number;
   targetReps: number;
+  restBetweenSets?: number; // in seconds
 }
 
 export interface LogSetDto {
@@ -99,6 +108,9 @@ export interface WorkoutSummary {
   status: WorkoutStatus;
   exerciseCount: number;
   totalSets: number;
+  totalCaloriesBurned?: number | null;
+  totalActiveTime?: number | null;
+  totalRestTime?: number | null;
 }
 
 export interface SaveWorkoutAsTemplateDto {

@@ -576,6 +576,64 @@ export class AnalyticsService {
     return { thisWeek, lastWeek, percentChange };
   }
 
+  async getWeeklyCalorieComparison(userId: string): Promise<{
+    thisWeek: number;
+    lastWeek: number;
+    percentChange: number;
+  }> {
+    const now = new Date();
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay());
+    thisWeekStart.setHours(0, 0, 0, 0);
+
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const lastWeekEnd = new Date(thisWeekStart);
+    lastWeekEnd.setSeconds(lastWeekEnd.getSeconds() - 1);
+
+    const [thisWeekWorkouts, lastWeekWorkouts] = await Promise.all([
+      prisma.workout.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          completedAt: { gte: thisWeekStart },
+        },
+        select: {
+          totalCaloriesBurned: true,
+          completedAt: true,
+        },
+      }),
+      prisma.workout.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          completedAt: { gte: lastWeekStart, lt: lastWeekEnd },
+        },
+        select: {
+          totalCaloriesBurned: true,
+          completedAt: true,
+        },
+      }),
+    ]);
+
+    console.log('Weekly Calorie Comparison Debug:');
+    console.log('This week start:', thisWeekStart);
+    console.log('This week workouts:', thisWeekWorkouts.length, thisWeekWorkouts);
+    console.log('Last week start:', lastWeekStart, 'end:', lastWeekEnd);
+    console.log('Last week workouts:', lastWeekWorkouts.length, lastWeekWorkouts);
+
+    const thisWeek = thisWeekWorkouts.reduce((sum, w) => sum + (w.totalCaloriesBurned || 0), 0);
+    const lastWeek = lastWeekWorkouts.reduce((sum, w) => sum + (w.totalCaloriesBurned || 0), 0);
+    const percentChange = lastWeek > 0 ? ((thisWeek - lastWeek) / lastWeek) * 100 : 0;
+
+    console.log('This week calories:', thisWeek);
+    console.log('Last week calories:', lastWeek);
+    console.log('Percent change:', percentChange);
+
+    return { thisWeek, lastWeek, percentChange };
+  }
+
   async getRecentPRs(userId: string, limit = 5): Promise<PersonalRecord[]> {
     const allPRs = await this.getPersonalRecords(userId);
     return allPRs
@@ -585,6 +643,7 @@ export class AnalyticsService {
 
   async getMonthlySummary(userId: string): Promise<{
     totalVolume: number;
+    totalCalories: number;
     averageDuration: number;
     workoutCount: number;
     topMuscleGroups: Array<{ name: string; count: number }>;
@@ -622,6 +681,11 @@ export class AnalyticsService {
       }, 0);
     }, 0);
 
+    // Calculate total calories from workouts
+    const totalCalories = workouts.reduce((total, workout) => {
+      return total + (workout.totalCaloriesBurned || 0);
+    }, 0);
+
     const durations = workouts
       .filter(w => w.startedAt && w.completedAt)
       .map(w => {
@@ -651,10 +715,91 @@ export class AnalyticsService {
 
     return {
       totalVolume,
+      totalCalories,
       averageDuration: Math.round(averageDuration),
       workoutCount: workouts.length,
       topMuscleGroups,
     };
+  }
+
+  async getCardioDistanceStats(userId: string, period: 'week' | 'month'): Promise<Array<{
+    exerciseName: string;
+    totalDistance: number;
+    totalDuration: number;
+    workoutCount: number;
+  }>> {
+    const startDate = new Date();
+
+    if (period === 'week') {
+      // Start of current week (Sunday)
+      startDate.setDate(startDate.getDate() - startDate.getDay());
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      // Start of current month
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate },
+      },
+      include: {
+        workoutExercises: {
+          where: {
+            exercise: {
+              type: ExerciseType.CARDIO,
+            },
+          },
+          include: {
+            sets: { where: { completed: true } },
+            exercise: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Group by exercise
+    const exerciseStats = new Map<string, {
+      exerciseName: string;
+      totalDistance: number;
+      totalDuration: number;
+      workoutCount: number;
+    }>();
+
+    workouts.forEach(workout => {
+      workout.workoutExercises.forEach(we => {
+        const exerciseKey = we.exercise.id;
+        const exerciseName = we.exercise.name;
+
+        const existing = exerciseStats.get(exerciseKey) || {
+          exerciseName,
+          totalDistance: 0,
+          totalDuration: 0,
+          workoutCount: 0,
+        };
+
+        const distance = we.sets.reduce((sum, set) => sum + (set.distanceMiles || 0), 0);
+        const duration = we.sets.reduce((sum, set) => sum + (set.durationMinutes || 0), 0);
+
+        exerciseStats.set(exerciseKey, {
+          exerciseName,
+          totalDistance: existing.totalDistance + distance,
+          totalDuration: existing.totalDuration + duration,
+          workoutCount: existing.workoutCount + 1,
+        });
+      });
+    });
+
+    return Array.from(exerciseStats.values())
+      .sort((a, b) => b.totalDistance - a.totalDistance);
   }
 
   async getRecentActivity(userId: string, limit = 5): Promise<Array<{
