@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
 import api, { scheduleAPI, workoutAPI, analyticsAPI } from '../services/api';
 import { WorkoutSchedule, PersonalRecord } from '@workout-tracker/shared';
+import ActiveWorkoutModal from '../components/ActiveWorkoutModal';
 
 interface WorkoutStats {
   totalWorkouts: number;
@@ -84,6 +85,9 @@ export default function Dashboard() {
   const [weeklySchedule, setWeeklySchedule] = useState<WorkoutSchedule[]>([]);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [activeWorkoutModalOpen, setActiveWorkoutModalOpen] = useState(false);
+  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
+  const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
   const { createWorkout } = useWorkout();
   const navigate = useNavigate();
 
@@ -156,17 +160,26 @@ export default function Dashboard() {
     e.preventDefault();
     if (!workoutName.trim()) return;
 
+    // Check if there's already an active workout first
+    const activeResponse = await workoutAPI.getActive();
+
+    if (activeResponse.data) {
+      const nameToUse = workoutName; // Capture in closure
+      setActiveWorkoutId(activeResponse.data.id);
+
+      // Store the action in ref
+      pendingActionRef.current = async () => {
+        const workout = await createWorkout({ name: nameToUse });
+        navigate(`/workout/${workout.id}`);
+      };
+
+      setActiveWorkoutModalOpen(true);
+      return;
+    }
+
+    // No active workout, create new one
     setLoading(true);
     try {
-      // Check if there's already an active workout
-      const activeResponse = await workoutAPI.getActive();
-      if (activeResponse.data) {
-        if (confirm('You have an active workout. Resume it instead of creating a new one?')) {
-          navigate(`/workout/${activeResponse.data.id}`);
-          return;
-        }
-      }
-
       const workout = await createWorkout({ name: workoutName });
       navigate(`/workout/${workout.id}`);
     } catch (error) {
@@ -177,17 +190,27 @@ export default function Dashboard() {
   };
 
   const handleUseTemplate = async (templateId: string, templateName: string) => {
+    // Check if there's already an active workout first
+    const activeResponse = await workoutAPI.getActive();
+    if (activeResponse.data) {
+      setActiveWorkoutId(activeResponse.data.id);
+
+      // Store the action in ref
+      pendingActionRef.current = async () => {
+        const response = await api.post('/api/v1/workouts/from-previous', {
+          templateWorkoutId: templateId,
+          name: `${templateName} - ${new Date().toLocaleDateString()}`,
+        });
+        navigate(`/workout/${response.data.id}`);
+      };
+
+      setActiveWorkoutModalOpen(true);
+      return;
+    }
+
+    // No active workout, create new one
     setLoading(true);
     try {
-      // Check if there's already an active workout
-      const activeResponse = await workoutAPI.getActive();
-      if (activeResponse.data) {
-        if (confirm('You have an active workout. Resume it instead of creating a new one?')) {
-          navigate(`/workout/${activeResponse.data.id}`);
-          return;
-        }
-      }
-
       const response = await api.post('/api/v1/workouts/from-previous', {
         templateWorkoutId: templateId,
         name: `${templateName} - ${new Date().toLocaleDateString()}`,
@@ -198,6 +221,39 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResumeActiveWorkout = () => {
+    if (activeWorkoutId) {
+      navigate(`/workout/${activeWorkoutId}`);
+    }
+    setActiveWorkoutModalOpen(false);
+    setActiveWorkoutId(null);
+    pendingActionRef.current = null;
+  };
+
+  const handleCreateNewWorkout = async () => {
+    setActiveWorkoutModalOpen(false);
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    setActiveWorkoutId(null);
+
+    if (action) {
+      setLoading(true);
+      try {
+        await action();
+      } catch (error) {
+        console.error('Failed to create workout:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleCancelActiveWorkoutModal = () => {
+    setActiveWorkoutModalOpen(false);
+    setActiveWorkoutId(null);
+    pendingActionRef.current = null;
   };
 
   const handleStartTodayWorkout = async () => {
@@ -594,6 +650,14 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Active Workout Warning Modal */}
+      <ActiveWorkoutModal
+        isOpen={activeWorkoutModalOpen}
+        onResume={handleResumeActiveWorkout}
+        onCreateNew={handleCreateNewWorkout}
+        onCancel={handleCancelActiveWorkoutModal}
+      />
     </div>
   );
 }
