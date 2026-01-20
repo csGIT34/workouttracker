@@ -16,6 +16,8 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
+const isSecureCookie = process.env.FRONTEND_URL?.startsWith('https') ?? false;
+
 export async function authRoutes(fastify: FastifyInstance) {
   // Register
   fastify.post('/register', async (request, reply) => {
@@ -43,7 +45,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       reply.setCookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecureCookie,
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
@@ -88,7 +90,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       reply.setCookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecureCookie,
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
