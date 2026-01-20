@@ -228,15 +228,14 @@ Copy from `.env.example` in that directory.
 ### Build Docker Images
 
 ```bash
-# From root
-npm run docker:build
-
-# Or individually
-docker build -t workout-backend:latest ./packages/backend
-docker build -t workout-frontend:latest ./packages/frontend
+# From root - must use -f flag because Dockerfiles expect root context
+docker build -t csdock34/workout-backend:latest -f ./packages/backend/Dockerfile .
+docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfile .
 ```
 
-### Deploy to Kubernetes
+Note: The npm `docker:build` scripts have incorrect build context. Use the commands above instead.
+
+### Deploy to Kubernetes (Manual)
 
 ```bash
 # Quick deploy
@@ -256,6 +255,33 @@ kubectl get pods -n workout-tracker
 kubectl exec -it <backend-pod-name> -n workout-tracker -- npx prisma migrate deploy
 kubectl exec -it <backend-pod-name> -n workout-tracker -- npm run prisma:seed
 ```
+
+### Deploy with ArgoCD
+
+The cluster uses ArgoCD for GitOps deployments. Since deployments use `imagePullPolicy: Always` with the `latest` tag, follow these steps to deploy code changes:
+
+```bash
+# 1. Commit and push code changes
+git add -A && git commit -m "Your commit message"
+git push
+
+# 2. Build Docker images (from repo root)
+docker build -t csdock34/workout-backend:latest -f ./packages/backend/Dockerfile .
+docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfile .
+
+# 3. Push images to Docker Hub
+docker push csdock34/workout-backend:latest
+docker push csdock34/workout-frontend:latest
+
+# 4. Restart deployments to pull new images
+kubectl rollout restart deployment/frontend deployment/backend -n workout-tracker
+
+# 5. Verify rollout completes
+kubectl rollout status deployment/frontend deployment/backend -n workout-tracker
+kubectl get pods -n workout-tracker
+```
+
+The app is accessible at http://workout.home after deployment.
 
 ## Important Implementation Details
 
