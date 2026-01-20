@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.setItem('accessToken', accessToken);
     setUser(userData);
+    setLoading(false);
   };
 
   const register = async (data: RegisterDto) => {
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.setItem('accessToken', accessToken);
     setUser(userData);
+    setLoading(false);
   };
 
   const logout = async () => {
