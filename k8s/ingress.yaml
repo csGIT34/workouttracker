@@ -1,26 +1,33 @@
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: workout-tracker-ingress
+  name: workout-tracker
   namespace: workout-tracker
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    cert-manager.io/cluster-issuer: home-lab-ca
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
+  tls:
+    - secretName: workout-tracker-tls
+      hosts:
+        - workout.home.lab
   rules:
-    - http:
+    - host: workout.home.lab
+      http:
         paths:
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: backend-service
+                name: backend
                 port:
                   number: 3000
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: frontend-service
+                name: frontend
                 port:
                   number: 80

@@ -235,53 +235,78 @@ docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfi
 
 Note: The npm `docker:build` scripts have incorrect build context. Use the commands above instead.
 
-### Deploy to Kubernetes (Manual)
+### Infrastructure
 
-```bash
-# Quick deploy
-./deploy.sh
+- **Cluster**: k3s cluster managed via ArgoCD GitOps (homelab repo)
+- **Database**: External PostgreSQL at `10.0.30.10` (not in-cluster)
+- **Ingress**: Traefik with TLS via cert-manager (`home-lab-ca` ClusterIssuer)
+- **DNS**: CoreDNS resolves `workout.home.lab` → `10.0.20.80` (Traefik LB)
+- **Replicas**: 2 backend, 2 frontend (no HPA for personal use)
 
-# Manual steps
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secrets.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/database/
-kubectl apply -f k8s/backend/
-kubectl apply -f k8s/frontend/
-kubectl apply -f k8s/ingress/
+### K8s Manifests (`k8s/`)
 
-# Run migrations in K8s
-kubectl get pods -n workout-tracker
-kubectl exec -it <backend-pod-name> -n workout-tracker -- npx prisma migrate deploy
-kubectl exec -it <backend-pod-name> -n workout-tracker -- npm run prisma:seed
-```
+| File | Purpose |
+|------|---------|
+| `namespace.yaml` | `workout-tracker` namespace |
+| `configmap.yaml` | Non-sensitive config (JWT expiry, NODE_ENV, FRONTEND_URL) |
+| `secrets.yaml` | DATABASE_URL, JWT secrets (update placeholder values before first deploy) |
+| `backend-deployment.yaml` | Backend Deployment (2 replicas) + ClusterIP Service on port 3000 |
+| `frontend-deployment.yaml` | Frontend Deployment (2 replicas) + ClusterIP Service on port 80 |
+| `ingress.yaml` | Traefik ingress for `workout.home.lab` with TLS, routes `/api` → backend, `/` → frontend |
 
 ### Deploy with ArgoCD
 
-The cluster uses ArgoCD for GitOps deployments. Since deployments use `imagePullPolicy: Always` with the `latest` tag, follow these steps to deploy code changes:
+ArgoCD automatically syncs the `k8s/` directory from the `master` branch. The ArgoCD Application is defined in the [homelab repo](https://github.com/csGIT34/homelab) at `kubernetes/apps/workout-tracker/workout-tracker.yml`.
+
+To deploy code changes:
 
 ```bash
 # 1. Commit and push code changes
 git add -A && git commit -m "Your commit message"
 git push
 
-# 2. Build Docker images (from repo root)
+# 2. Build and push Docker images (from repo root)
 docker build -t csdock34/workout-backend:latest -f ./packages/backend/Dockerfile .
 docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfile .
-
-# 3. Push images to Docker Hub
 docker push csdock34/workout-backend:latest
 docker push csdock34/workout-frontend:latest
 
-# 4. Restart deployments to pull new images
+# 3. Restart deployments to pull new images
 kubectl rollout restart deployment/frontend deployment/backend -n workout-tracker
 
-# 5. Verify rollout completes
+# 4. Verify rollout completes
 kubectl rollout status deployment/frontend deployment/backend -n workout-tracker
 kubectl get pods -n workout-tracker
 ```
 
-The app is accessible at http://workout.home after deployment.
+### Initial Database Setup
+
+PostgreSQL runs externally at `10.0.30.10`. Before first deployment, create the database:
+
+```sql
+-- On 10.0.30.10
+CREATE DATABASE workouttracker;
+CREATE USER workouttracker WITH ENCRYPTED PASSWORD '<password>';
+GRANT ALL PRIVILEGES ON DATABASE workouttracker TO workouttracker;
+\c workouttracker
+GRANT ALL ON SCHEMA public TO workouttracker;
+```
+
+After backend pods are running, run migrations:
+
+```bash
+kubectl exec -it deploy/backend -n workout-tracker -- npx prisma migrate deploy
+kubectl exec -it deploy/backend -n workout-tracker -- npm run prisma:seed
+```
+
+### Verify Deployment
+
+```bash
+# Check ArgoCD UI at https://argocd.home.lab
+kubectl get pods -n workout-tracker
+# App accessible at https://workout.home.lab
+# Health check: https://workout.home.lab/api/v1/health
+```
 
 ## Important Implementation Details
 
