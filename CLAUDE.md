@@ -247,7 +247,6 @@ Note: The npm `docker:build` scripts have incorrect build context. Use the comma
 
 | File | Purpose |
 |------|---------|
-| `namespace.yaml` | `workout-tracker` namespace |
 | `configmap.yaml` | Non-sensitive config (JWT expiry, NODE_ENV, FRONTEND_URL) |
 | `secrets.yaml` | DATABASE_URL, JWT secrets (update placeholder values before first deploy) |
 | `backend-deployment.yaml` | Backend Deployment (2 replicas) + ClusterIP Service on port 3000 |
@@ -258,23 +257,19 @@ Note: The npm `docker:build` scripts have incorrect build context. Use the comma
 
 ArgoCD automatically syncs the `k8s/` directory from the `master` branch. The ArgoCD Application is defined in the [homelab repo](https://github.com/csGIT34/homelab) at `kubernetes/apps/workout-tracker/workout-tracker.yml`.
 
-To deploy code changes:
+To deploy code changes, just push to `master`. GitHub Actions automatically builds and pushes Docker images, then restarts the deployments. To deploy manually:
 
 ```bash
-# 1. Commit and push code changes
-git add -A && git commit -m "Your commit message"
-git push
-
-# 2. Build and push Docker images (from repo root)
+# 1. Build and push Docker images (from repo root)
 docker build -t csdock34/workout-backend:latest -f ./packages/backend/Dockerfile .
 docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfile .
 docker push csdock34/workout-backend:latest
 docker push csdock34/workout-frontend:latest
 
-# 3. Restart deployments to pull new images
+# 2. Restart deployments to pull new images
 kubectl rollout restart deployment/frontend deployment/backend -n workout-tracker
 
-# 4. Verify rollout completes
+# 3. Verify rollout completes
 kubectl rollout status deployment/frontend deployment/backend -n workout-tracker
 kubectl get pods -n workout-tracker
 ```
@@ -292,11 +287,15 @@ GRANT ALL PRIVILEGES ON DATABASE workouttracker TO workouttracker;
 GRANT ALL ON SCHEMA public TO workouttracker;
 ```
 
-After backend pods are running, run migrations:
+After backend pods are running, push the schema and seed:
 
 ```bash
-kubectl exec -it deploy/backend -n workout-tracker -- npx prisma migrate deploy
-kubectl exec -it deploy/backend -n workout-tracker -- npm run prisma:seed
+# Push schema (this project uses prisma db push, not migrations)
+kubectl exec deploy/backend -n workout-tracker -- npx prisma db push
+
+# Seed from local machine (tsx is not in the production image)
+cd packages/backend
+DATABASE_URL="postgresql://workouttracker:<password>@10.0.30.10:5432/workouttracker" npx tsx prisma/seed.ts
 ```
 
 ### Verify Deployment
@@ -320,7 +319,7 @@ Refresh token endpoint (`POST /api/v1/auth/refresh`) reads HttpOnly cookie autom
 
 ### CORS Configuration
 
-Backend CORS allows credentials and uses `FRONTEND_URL` environment variable. Change this for production deployment.
+Backend CORS allows credentials and uses `FRONTEND_URL` environment variable (`https://workout.home.lab` in production). The cookie `secure` flag must match the protocol (true for HTTPS).
 
 ### Database Indexes
 
