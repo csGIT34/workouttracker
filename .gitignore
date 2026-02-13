@@ -41,6 +41,9 @@ Thumbs.db
 # Prisma
 packages/backend/prisma/migrations/
 
+# Kubernetes secrets (real values applied manually)
+k8s/secrets.yaml
+
 # Docker
 *.log
 .~lock.*.xlsx#

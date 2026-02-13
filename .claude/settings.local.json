@@ -24,7 +24,11 @@
       "Bash(kubectl get:*)",
       "Bash(docker push:*)",
       "Bash(kubectl rollout:*)",
-      "Bash(kubectl rollout status:*)"
+      "Bash(kubectl rollout status:*)",
+      "Bash(kubectl config get-contexts:*)",
+      "Bash(kubectl config view:*)",
+      "Bash(ssh:*)",
+      "Bash(sshpass -p 'Hiroproto34' ssh -o StrictHostKeyChecking=no root@10.0.20.10 cat /etc/rancher/k3s/k3s.yaml)"
     ]
   }
 }
