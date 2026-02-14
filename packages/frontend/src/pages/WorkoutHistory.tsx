@@ -145,6 +145,11 @@ export default function WorkoutHistory() {
                         Continue
                       </Link>
                     )}
+                    {workout.status === WorkoutStatus.COMPLETED && (
+                      <Link to={`/workout/${workout.id}`} className="btn btn-outline">
+                        Edit
+                      </Link>
+                    )}
                     <button
                       onClick={(e) => {
                         e.preventDefault();

@@ -108,10 +108,6 @@ export class WorkoutService {
       throw new Error('Workout not found');
     }
 
-    if (workout.status !== WorkoutStatus.IN_PROGRESS) {
-      throw new Error('Cannot add exercises to a completed workout');
-    }
-
     // Get next order index
     const maxOrder = workout.workoutExercises.reduce(
       (max, ex) => Math.max(max, ex.orderIndex),
@@ -259,10 +255,6 @@ export class WorkoutService {
 
     if (!set) {
       throw new Error('Set not found');
-    }
-
-    if (set.workoutExercise.workout.status === WorkoutStatus.COMPLETED) {
-      throw new Error('Cannot edit sets in a completed workout');
     }
 
     return prisma.set.update({

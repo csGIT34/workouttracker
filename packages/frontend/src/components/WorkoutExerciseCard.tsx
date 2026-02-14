@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { WorkoutExercise, ExerciseType, WorkoutStatus } from '@workout-tracker/shared';
+import { WorkoutExercise, ExerciseType } from '@workout-tracker/shared';
 import { useWorkout } from '../contexts/WorkoutContext';
 import SetLogger from './SetLogger';
 
@@ -10,15 +10,12 @@ interface WorkoutExerciseCardProps {
 
 export default function WorkoutExerciseCard({ workoutExercise, workoutId }: WorkoutExerciseCardProps) {
   const [expanded, setExpanded] = useState(true);
-  const { completeExercise, currentWorkout } = useWorkout();
+  const { completeExercise } = useWorkout();
 
   const isCardio = workoutExercise.exercise?.type === ExerciseType.CARDIO;
   const completedSets = workoutExercise.sets.filter((s) => s.completed).length;
   const targetSets = isCardio ? 1 : workoutExercise.targetSets;
   const progressPercent = (completedSets / targetSets) * 100;
-
-  // Allow editing if workout is not completed
-  const workoutCompleted = currentWorkout?.status === WorkoutStatus.COMPLETED;
 
   const handleComplete = async () => {
     if (completedSets < targetSets) {
@@ -111,13 +108,9 @@ export default function WorkoutExerciseCard({ workoutExercise, workoutId }: Work
             />
           </div>
 
-          {/* Show SetLogger as long as workout is not completed */}
-          {!workoutCompleted && (
-            <SetLogger workoutExercise={workoutExercise} />
-          )}
+          <SetLogger workoutExercise={workoutExercise} />
 
-          {/* Show complete button only if exercise is not completed and workout is not completed */}
-          {!workoutExercise.completed && !workoutCompleted && (
+          {!workoutExercise.completed && (
             <button
               onClick={handleComplete}
               className="btn btn-success"
@@ -125,20 +118,6 @@ export default function WorkoutExerciseCard({ workoutExercise, workoutId }: Work
             >
               Mark Exercise Complete
             </button>
-          )}
-
-          {/* Show message if workout is completed */}
-          {workoutCompleted && (
-            <div style={{
-              padding: '1rem',
-              backgroundColor: 'var(--background)',
-              borderRadius: '0.375rem',
-              textAlign: 'center',
-              fontSize: '0.875rem',
-              color: 'var(--text-secondary)'
-            }}>
-              Workout completed - sets cannot be edited
-            </div>
           )}
         </>
       )}

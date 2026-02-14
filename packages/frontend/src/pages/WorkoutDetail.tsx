@@ -95,6 +95,11 @@ export default function WorkoutDetail() {
               Continue Workout
             </Link>
           )}
+          {workout.status === WorkoutStatus.COMPLETED && (
+            <Link to={`/workout/${workout.id}`} className="btn btn-primary">
+              Edit Workout
+            </Link>
+          )}
         </div>
       </div>
 
