@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { Exercise, WorkoutExercise, ExerciseType } from '@workout-tracker/shared';
 import Stopwatch from '../components/Stopwatch';
 import ExerciseSelector from '../components/ExerciseSelector';
@@ -15,6 +16,7 @@ export default function ActiveWorkout() {
   const navigate = useNavigate();
   const { currentWorkout, getWorkout, completeWorkout, deleteWorkout, saveWorkoutAsTemplate } = useWorkout();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false);
@@ -195,21 +197,21 @@ export default function ActiveWorkout() {
 
   return (
     <div>
-      <div style={{
+      <div className="workout-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: '2rem',
       }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+          <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
             {currentWorkout.name}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
             Started {elapsedMinutes} minutes ago
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="workout-header-actions" style={{ display: 'flex', gap: '0.5rem' }}>
           <button onClick={() => setDeleteModalOpen(true)} className="btn btn-outline">
             Cancel
           </button>
@@ -219,7 +221,48 @@ export default function ActiveWorkout() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: '1fr 350px' }}>
+      {isMobile && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              Rest Timer
+            </h2>
+            <Stopwatch />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              Calories Burned
+            </h2>
+            <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+              {user?.weight ? (
+                <>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                    {currentCalories !== null ? currentCalories : 0}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    kcal (estimate)
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    Set your weight to track calories
+                  </div>
+                  <button
+                    onClick={() => setShowProfileModal(true)}
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                  >
+                    Set Up Profile
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="workout-layout" style={{ display: 'grid', gap: '2rem', gridTemplateColumns: isMobile ? '1fr' : '1fr 350px' }}>
         <div>
           <div style={{
             display: 'flex',
@@ -265,45 +308,47 @@ export default function ActiveWorkout() {
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-              Rest Timer
-            </h2>
-            <Stopwatch />
-          </div>
+        {!isMobile && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+                Rest Timer
+              </h2>
+              <Stopwatch />
+            </div>
 
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-              Calories Burned
-            </h2>
-            <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-              {user?.weight ? (
-                <>
-                  <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                    {currentCalories !== null ? currentCalories : 0}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    kcal (estimate)
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                    Set your weight to track calories
-                  </div>
-                  <button
-                    onClick={() => setShowProfileModal(true)}
-                    className="btn btn-primary"
-                    style={{ width: '100%' }}
-                  >
-                    Set Up Profile
-                  </button>
-                </>
-              )}
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+                Calories Burned
+              </h2>
+              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                {user?.weight ? (
+                  <>
+                    <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                      {currentCalories !== null ? currentCalories : 0}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      kcal (estimate)
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                      Set your weight to track calories
+                    </div>
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="btn btn-primary"
+                      style={{ width: '100%' }}
+                    >
+                      Set Up Profile
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {showExerciseSelector && (

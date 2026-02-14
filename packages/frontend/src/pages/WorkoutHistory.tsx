@@ -94,7 +94,7 @@ export default function WorkoutHistory() {
 
             return (
               <div key={workout.id} className="card">
-                <div style={{
+                <div className="history-card-layout" style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
@@ -108,7 +108,7 @@ export default function WorkoutHistory() {
                       cursor: 'pointer'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                       <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
                         {workout.name}
                       </h3>
@@ -120,7 +120,7 @@ export default function WorkoutHistory() {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    <div className="history-card-meta" style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                       <div>{formatDate(workout.startedAt)}</div>
                       <div>{formatDuration(workout.startedAt, workout.completedAt)}</div>
                       <div>{workout.workoutExercises.length} exercises</div>
@@ -139,7 +139,7 @@ export default function WorkoutHistory() {
                     )}
                   </Link>
 
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div className="history-card-actions" style={{ display: 'flex', gap: '0.5rem' }}>
                     {workout.status === WorkoutStatus.IN_PROGRESS && (
                       <Link to={`/workout/${workout.id}`} className="btn btn-primary">
                         Continue

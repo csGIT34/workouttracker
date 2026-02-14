@@ -88,7 +88,7 @@ export default function TemplateManager() {
 
   return (
     <div>
-      <div style={{
+      <div className="page-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -138,7 +138,7 @@ export default function TemplateManager() {
           </button>
         </div>
       ) : (
-        <div style={{
+        <div className="template-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: '1.5rem'

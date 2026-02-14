@@ -447,7 +447,7 @@ export default function Schedule() {
       </div>
 
       {/* Tabs */}
-      <div style={{
+      <div className="schedule-tabs" style={{
         display: 'flex',
         gap: '1rem',
         marginBottom: '2rem',
@@ -682,7 +682,7 @@ export default function Schedule() {
 
       {/* Monthly Calendar View */}
       {activeTab === 'calendar' && (
-        <div className="card">
+        <div className="card calendar-container">
           <div style={{
             display: 'flex',
             gap: '1.5rem',

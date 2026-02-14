@@ -250,7 +250,7 @@ export default function ProgressCharts() {
 
   return (
     <div>
-      <div style={{
+      <div className="page-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -353,7 +353,7 @@ export default function ProgressCharts() {
           </div>
         </div>
 
-        <div style={{
+        <div className="progress-selectors" style={{
           display: 'grid',
           gridTemplateColumns: viewMode === 'single' ? '1fr auto auto' : '1fr auto',
           gap: '1rem',
