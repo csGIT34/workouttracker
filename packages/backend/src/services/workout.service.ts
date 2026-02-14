@@ -157,10 +157,32 @@ export class WorkoutService {
   async restartWorkout(userId: string, workoutId: string) {
     const workout = await prisma.workout.findFirst({
       where: { id: workoutId, userId },
+      include: {
+        workoutExercises: {
+          include: { exercise: true },
+        },
+      },
     });
 
     if (!workout) {
       throw new Error('Workout not found');
+    }
+
+    // Refresh suggested weights from latest progression data
+    for (const we of workout.workoutExercises) {
+      if (we.exercise.type === ExerciseType.STRENGTH) {
+        const progression = await progressionService.getProgressionForExercise(userId, we.exerciseId);
+        if (progression?.lastWorkout?.avgWeight) {
+          let suggestedWeight = progression.lastWorkout.avgWeight;
+          if (progression.recommendation === 'INCREASE_WEIGHT') {
+            suggestedWeight += 5;
+          }
+          await prisma.workoutExercise.update({
+            where: { id: we.id },
+            data: { suggestedWeight },
+          });
+        }
+      }
     }
 
     return prisma.workout.update({
