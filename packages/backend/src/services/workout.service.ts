@@ -184,7 +184,7 @@ export class WorkoutService {
       where: { id: workoutId },
       data: {
         status: WorkoutStatus.COMPLETED,
-        completedAt: new Date(),
+        completedAt: workout.completedAt || new Date(),
       },
     });
 
@@ -229,13 +229,14 @@ export class WorkoutService {
           userId,
         },
       },
+      include: { workout: true },
     });
 
     if (!workoutExercise) {
       throw new Error('Workout exercise not found');
     }
 
-    return prisma.set.create({
+    const newSet = await prisma.set.create({
       data: {
         workoutExerciseId,
         setNumber: data.setNumber,
@@ -248,6 +249,17 @@ export class WorkoutService {
         completed: true,
       },
     });
+
+    // Update progression if logging sets on an already-completed workout (e.g., backdated)
+    if (workoutExercise.workout.status === WorkoutStatus.COMPLETED) {
+      try {
+        await progressionService.calculateProgression(userId, workoutExercise.exerciseId);
+      } catch (error) {
+        console.error('Failed to update progression for completed workout:', error);
+      }
+    }
+
+    return newSet;
   }
 
   async updateSet(userId: string, setId: string, data: UpdateSetDto) {
@@ -274,10 +286,21 @@ export class WorkoutService {
       throw new Error('Set not found');
     }
 
-    return prisma.set.update({
+    const updatedSet = await prisma.set.update({
       where: { id: setId },
       data,
     });
+
+    // Update progression if editing sets on an already-completed workout (e.g., backdated)
+    if (set.workoutExercise.workout.status === WorkoutStatus.COMPLETED) {
+      try {
+        await progressionService.calculateProgression(userId, set.workoutExercise.exerciseId);
+      } catch (error) {
+        console.error('Failed to update progression for completed workout:', error);
+      }
+    }
+
+    return updatedSet;
   }
 
   async completeSet(userId: string, setId: string) {
