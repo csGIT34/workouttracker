@@ -34,15 +34,15 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
     return 0;
   };
 
-  // Strength exercise state
-  const [reps, setReps] = useState(workoutExercise.targetReps);
-  const [weight, setWeight] = useState(getInitialWeight());
+  // Strength exercise state (string-based to allow clearing inputs)
+  const [reps, setReps] = useState(String(workoutExercise.targetReps));
+  const [weight, setWeight] = useState(getInitialWeight() ? String(getInitialWeight()) : '');
   const [rpe, setRpe] = useState<number | undefined>(undefined);
 
-  // Cardio exercise state
-  const [durationMinutes, setDurationMinutes] = useState(getInitialDuration());
-  const [distanceMiles, setDistanceMiles] = useState(getInitialDistance());
-  const [caloriesBurned, setCaloriesBurned] = useState<number | undefined>(undefined);
+  // Cardio exercise state (string-based to allow clearing inputs)
+  const [durationMinutes, setDurationMinutes] = useState(String(getInitialDuration()));
+  const [distanceMiles, setDistanceMiles] = useState(getInitialDistance() ? String(getInitialDistance()) : '');
+  const [caloriesBurned, setCaloriesBurned] = useState<string>('');
 
   const { logSet, updateSet } = useWorkout();
 
@@ -56,20 +56,20 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
       if (isCardio) {
         await logSet(workoutExercise.id, {
           setNumber: nextSetNumber,
-          durationMinutes,
-          distanceMiles,
-          caloriesBurned,
+          durationMinutes: Number(durationMinutes) || 0,
+          distanceMiles: Number(distanceMiles) || 0,
+          caloriesBurned: caloriesBurned ? Number(caloriesBurned) : undefined,
         });
         // Cardio is done after one set
       } else {
         await logSet(workoutExercise.id, {
           setNumber: nextSetNumber,
-          reps,
-          weight,
+          reps: Number(reps) || 0,
+          weight: Number(weight) || 0,
           rpe,
         });
         // Reset reps to target for next set, keep weight the same
-        setReps(workoutExercise.targetReps);
+        setReps(String(workoutExercise.targetReps));
         setRpe(undefined);
       }
     } catch (error) {
@@ -288,7 +288,7 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
                   type="number"
                   className="input"
                   value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                  onChange={(e) => setDurationMinutes(e.target.value)}
                   min={0}
                   style={{ padding: '0.5rem' }}
                 />
@@ -301,7 +301,7 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
                   type="number"
                   className="input"
                   value={distanceMiles}
-                  onChange={(e) => setDistanceMiles(Number(e.target.value))}
+                  onChange={(e) => setDistanceMiles(e.target.value)}
                   min={0}
                   step="0.1"
                   style={{ padding: '0.5rem' }}
@@ -314,8 +314,8 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
                 <input
                   type="number"
                   className="input"
-                  value={caloriesBurned || ''}
-                  onChange={(e) => setCaloriesBurned(e.target.value ? Number(e.target.value) : undefined)}
+                  value={caloriesBurned}
+                  onChange={(e) => setCaloriesBurned(e.target.value)}
                   min={0}
                   placeholder="Optional"
                   style={{ padding: '0.5rem' }}
@@ -332,7 +332,7 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
                   type="number"
                   className="input"
                   value={reps}
-                  onChange={(e) => setReps(Number(e.target.value))}
+                  onChange={(e) => setReps(e.target.value)}
                   min={0}
                   style={{ padding: '0.5rem' }}
                 />
@@ -345,9 +345,10 @@ export default function SetLogger({ workoutExercise }: SetLoggerProps) {
                   type="number"
                   className="input"
                   value={weight}
-                  onChange={(e) => setWeight(Number(e.target.value))}
+                  onChange={(e) => setWeight(e.target.value)}
                   min={0}
                   step="0.5"
+                  placeholder={workoutExercise.suggestedWeight ? String(Math.round(workoutExercise.suggestedWeight)) : '0'}
                   style={{ padding: '0.5rem' }}
                 />
               </div>
