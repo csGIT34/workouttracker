@@ -3,6 +3,7 @@ import {
   CreateTemplateDto,
   UpdateTemplateDto,
   AddExerciseToTemplateDto,
+  UpdateTemplateExerciseDto,
   ReorderTemplateExercisesDto,
 } from '@workout-tracker/shared';
 
@@ -136,6 +137,48 @@ export class TemplateService {
         templateId,
         exerciseId: data.exerciseId,
         orderIndex: maxOrder + 1,
+        targetSets: data.targetSets,
+        targetReps: data.targetReps,
+        targetDurationMinutes: data.targetDurationMinutes,
+        targetDistanceMiles: data.targetDistanceMiles,
+        notes: data.notes,
+      },
+      include: {
+        exercise: true,
+      },
+    });
+  }
+
+  async updateTemplateExercise(
+    userId: string,
+    templateId: string,
+    templateExerciseId: string,
+    data: UpdateTemplateExerciseDto
+  ) {
+    // Verify template belongs to user
+    const template = await prisma.workoutTemplate.findFirst({
+      where: { id: templateId, userId },
+    });
+
+    if (!template) {
+      throw new Error('Template not found');
+    }
+
+    // Verify template exercise belongs to this template
+    const templateExercise = await prisma.templateExercise.findFirst({
+      where: {
+        id: templateExerciseId,
+        templateId,
+      },
+    });
+
+    if (!templateExercise) {
+      throw new Error('Template exercise not found');
+    }
+
+    return prisma.templateExercise.update({
+      where: { id: templateExerciseId },
+      data: {
         targetSets: data.targetSets,
         targetReps: data.targetReps,
         targetDurationMinutes: data.targetDurationMinutes,

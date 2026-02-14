@@ -49,6 +49,14 @@ export interface AddExerciseToTemplateDto {
   notes?: string;
 }
 
+export interface UpdateTemplateExerciseDto {
+  targetSets?: number;
+  targetReps?: number;
+  targetDurationMinutes?: number;
+  targetDistanceMiles?: number;
+  notes?: string;
+}
+
 export interface ReorderTemplateExercisesDto {
   exerciseIds: string[];
 }

@@ -66,6 +66,8 @@ export const templateAPI = {
     api.post(`/api/v1/templates/${id}/exercises`, data),
   removeExercise: (id: string, exerciseId: string) =>
     api.delete(`/api/v1/templates/${id}/exercises/${exerciseId}`),
+  updateExercise: (id: string, exerciseId: string, data: any) =>
+    api.put(`/api/v1/templates/${id}/exercises/${exerciseId}`, data),
   reorderExercises: (id: string, exerciseIds: string[]) =>
     api.put(`/api/v1/templates/${id}/exercises/reorder`, { exerciseIds }),
 };

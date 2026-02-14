@@ -18,6 +18,13 @@ export default function TemplateForm() {
   const [color, setColor] = useState('#3b82f6');
   const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>([]);
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
+  const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{
+    targetSets?: number;
+    targetReps?: number;
+    targetDurationMinutes?: number;
+    targetDistanceMiles?: number;
+  }>({});
 
   useEffect(() => {
     if (id) {
@@ -92,6 +99,35 @@ export default function TemplateForm() {
       console.error('Failed to remove exercise:', error);
       alert('Failed to remove exercise');
     }
+  };
+
+  const handleEditExercise = (te: TemplateExercise) => {
+    setEditingExerciseId(te.id);
+    setEditValues({
+      targetSets: te.targetSets ?? undefined,
+      targetReps: te.targetReps ?? undefined,
+      targetDurationMinutes: te.targetDurationMinutes ?? undefined,
+      targetDistanceMiles: te.targetDistanceMiles ?? undefined,
+    });
+  };
+
+  const handleSaveExercise = async (templateExerciseId: string) => {
+    if (!id) return;
+    try {
+      const response = await templateAPI.updateExercise(id, templateExerciseId, editValues);
+      setTemplateExercises(templateExercises.map((te) =>
+        te.id === templateExerciseId ? response.data : te
+      ));
+      setEditingExerciseId(null);
+    } catch (error) {
+      console.error('Failed to update exercise:', error);
+      alert('Failed to update exercise');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingExerciseId(null);
+    setEditValues({});
   };
 
   return (
@@ -225,62 +261,166 @@ export default function TemplateForm() {
                     key={te.id}
                     style={{
                       padding: '1rem',
-                      border: '1px solid var(--border)',
+                      border: editingExerciseId === te.id ? `2px solid ${color}` : '1px solid var(--border)',
                       borderRadius: '0.375rem',
                       backgroundColor: 'var(--background)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: color,
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '0.875rem'
-                      }}>
-                        {index + 1}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-                          {te.exercise?.name}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: color,
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '0.875rem',
+                          flexShrink: 0,
+                        }}>
+                          {index + 1}
                         </div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                          {te.exercise?.type === ExerciseType.CARDIO ? (
-                            <>
-                              {te.targetDurationMinutes || 0} min
-                              {te.targetDistanceMiles ? ` • ${te.targetDistanceMiles} mi` : ''}
-                            </>
-                          ) : (
-                            <>
-                              {te.targetSets} sets × {te.targetReps} reps
-                            </>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                            {te.exercise?.name}
+                          </div>
+                          {editingExerciseId !== te.id && (
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              {te.exercise?.type === ExerciseType.CARDIO ? (
+                                <>
+                                  {te.targetDurationMinutes || 0} min
+                                  {te.targetDistanceMiles ? ` • ${te.targetDistanceMiles} mi` : ''}
+                                </>
+                              ) : (
+                                <>
+                                  {te.targetSets} sets × {te.targetReps} reps
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        {editingExerciseId !== te.id && (
+                          <button
+                            onClick={() => handleEditExercise(te)}
+                            style={{
+                              padding: '0.5rem',
+                              color: 'var(--text-secondary)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '1rem',
+                              lineHeight: 1
+                            }}
+                            title="Edit exercise"
+                          >
+                            ✎
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleRemoveExercise(te.id)}
+                          style={{
+                            padding: '0.5rem',
+                            color: 'var(--danger)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1.25rem',
+                            lineHeight: 1
+                          }}
+                          title="Remove exercise"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleRemoveExercise(te.id)}
-                      style={{
-                        padding: '0.5rem',
-                        color: 'var(--danger)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '1.25rem',
-                        lineHeight: 1
-                      }}
-                      title="Remove exercise"
-                    >
-                      ×
-                    </button>
+
+                    {editingExerciseId === te.id && (
+                      <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+                        {te.exercise?.type === ExerciseType.CARDIO ? (
+                          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                                Duration (min)
+                              </label>
+                              <input
+                                type="number"
+                                className="input"
+                                value={editValues.targetDurationMinutes ?? ''}
+                                onChange={(e) => setEditValues({ ...editValues, targetDurationMinutes: e.target.value ? Number(e.target.value) : undefined })}
+                                min={0}
+                                style={{ padding: '0.5rem' }}
+                              />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                                Distance (mi)
+                              </label>
+                              <input
+                                type="number"
+                                className="input"
+                                value={editValues.targetDistanceMiles ?? ''}
+                                onChange={(e) => setEditValues({ ...editValues, targetDistanceMiles: e.target.value ? Number(e.target.value) : undefined })}
+                                min={0}
+                                step={0.1}
+                                style={{ padding: '0.5rem' }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                                Sets
+                              </label>
+                              <input
+                                type="number"
+                                className="input"
+                                value={editValues.targetSets ?? ''}
+                                onChange={(e) => setEditValues({ ...editValues, targetSets: e.target.value ? Number(e.target.value) : undefined })}
+                                min={1}
+                                max={10}
+                                style={{ padding: '0.5rem' }}
+                              />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                                Reps
+                              </label>
+                              <input
+                                type="number"
+                                className="input"
+                                value={editValues.targetReps ?? ''}
+                                onChange={(e) => setEditValues({ ...editValues, targetReps: e.target.value ? Number(e.target.value) : undefined })}
+                                min={1}
+                                max={50}
+                                style={{ padding: '0.5rem' }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="btn btn-outline"
+                            style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveExercise(te.id)}
+                            className="btn btn-primary"
+                            style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

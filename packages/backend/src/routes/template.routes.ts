@@ -25,6 +25,14 @@ const addExerciseSchema = z.object({
   notes: z.string().optional(),
 });
 
+const updateExerciseSchema = z.object({
+  targetSets: z.number().min(1).optional(),
+  targetReps: z.number().min(1).optional(),
+  targetDurationMinutes: z.number().min(0).optional(),
+  targetDistanceMiles: z.number().min(0).optional(),
+  notes: z.string().optional(),
+});
+
 const reorderExercisesSchema = z.object({
   exerciseIds: z.array(z.string().uuid()),
 });
@@ -90,6 +98,26 @@ export async function templateRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any;
       const data = addExerciseSchema.parse(request.body);
       return templateService.addExerciseToTemplate(request.user!.userId, id, data);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        reply.status(400).send({ error: 'Validation error', details: error.errors });
+      } else {
+        throw error;
+      }
+    }
+  });
+
+  // Update exercise in template
+  fastify.put('/:id/exercises/:exerciseId', async (request, reply) => {
+    try {
+      const { id, exerciseId } = request.params as any;
+      const data = updateExerciseSchema.parse(request.body);
+      return templateService.updateTemplateExercise(
+        request.user!.userId,
+        id,
+        exerciseId,
+        data
+      );
     } catch (error) {
       if (error instanceof z.ZodError) {
         reply.status(400).send({ error: 'Validation error', details: error.errors });
