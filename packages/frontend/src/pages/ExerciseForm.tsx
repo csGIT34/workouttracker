@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { exerciseAPI, adminAPI } from '../services/api';
+import { exerciseAPI } from '../services/api';
 import { ExerciseType } from '@workout-tracker/shared';
 
 export default function ExerciseForm() {
@@ -25,8 +25,8 @@ export default function ExerciseForm() {
   const fetchMetadata = async () => {
     try {
       const [mgResponse, catResponse] = await Promise.all([
-        adminAPI.muscleGroups.getAll(),
-        adminAPI.categories.getAll(),
+        exerciseAPI.getMuscleGroups(),
+        exerciseAPI.getCategories(),
       ]);
       setMuscleGroups(mgResponse.data);
       setCategories(catResponse.data);

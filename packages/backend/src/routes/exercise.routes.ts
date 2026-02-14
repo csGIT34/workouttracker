@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { exerciseService } from '../services/exercise.service.js';
+import { metadataService } from '../services/metadata.service.js';
 import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth.middleware.js';
 
 const createExerciseSchema = z.object({
@@ -76,6 +77,15 @@ export async function exerciseRoutes(fastify: FastifyInstance) {
     }
 
     return exercise;
+  });
+
+  // Public read-only endpoints for muscle groups and categories
+  fastify.get('/muscle-groups', { preHandler: [authenticate] }, async () => {
+    return metadataService.getAllMuscleGroups();
+  });
+
+  fastify.get('/categories', { preHandler: [authenticate] }, async () => {
+    return metadataService.getAllCategories();
   });
 
   // All routes below require authentication

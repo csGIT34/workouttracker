@@ -132,6 +132,23 @@ export default function TemplateForm() {
     setEditValues({});
   };
 
+  const handleMoveExercise = async (index: number, direction: 'up' | 'down') => {
+    if (!id) return;
+    const newExercises = [...templateExercises];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= newExercises.length) return;
+
+    [newExercises[index], newExercises[swapIndex]] = [newExercises[swapIndex], newExercises[index]];
+    setTemplateExercises(newExercises);
+
+    try {
+      await templateAPI.reorderExercises(id, newExercises.map((te) => te.id));
+    } catch (error) {
+      console.error('Failed to reorder exercises:', error);
+      setTemplateExercises(templateExercises);
+    }
+  };
+
   return (
     <div>
       <div style={{ marginBottom: '2rem' }}>
@@ -306,23 +323,57 @@ export default function TemplateForm() {
                           )}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                         {editingExerciseId !== te.id && (
-                          <button
-                            onClick={() => handleEditExercise(te)}
-                            style={{
-                              padding: '0.5rem',
-                              color: 'var(--text-secondary)',
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontSize: '1rem',
-                              lineHeight: 1
-                            }}
-                            title="Edit exercise"
-                          >
-                            ✎
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleMoveExercise(index, 'up')}
+                              disabled={index === 0}
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                color: index === 0 ? 'var(--border)' : 'var(--text-secondary)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: index === 0 ? 'default' : 'pointer',
+                                fontSize: '1rem',
+                                lineHeight: 1
+                              }}
+                              title="Move up"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => handleMoveExercise(index, 'down')}
+                              disabled={index === templateExercises.length - 1}
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                color: index === templateExercises.length - 1 ? 'var(--border)' : 'var(--text-secondary)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: index === templateExercises.length - 1 ? 'default' : 'pointer',
+                                fontSize: '1rem',
+                                lineHeight: 1
+                              }}
+                              title="Move down"
+                            >
+                              ▼
+                            </button>
+                            <button
+                              onClick={() => handleEditExercise(te)}
+                              style={{
+                                padding: '0.5rem',
+                                color: 'var(--text-secondary)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '1rem',
+                                lineHeight: 1
+                              }}
+                              title="Edit exercise"
+                            >
+                              ✎
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => handleRemoveExercise(te.id)}
