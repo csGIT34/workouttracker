@@ -24,6 +24,8 @@ export default function WorkoutCalendar() {
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [logTemplateId, setLogTemplateId] = useState<string>('');
+  const [isLogging, setIsLogging] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
@@ -199,18 +201,21 @@ export default function WorkoutCalendar() {
     return eventDay < today;
   })();
 
-  const handleLogPastWorkout = async (templateId: string) => {
-    if (!selectedEvent?.start) return;
+  const handleLogPastWorkout = async () => {
+    if (!selectedEvent?.start || !logTemplateId) return;
 
+    setIsLogging(true);
     try {
-      await workoutAPI.createFromTemplate(templateId, selectedEvent.start.toISOString());
+      await workoutAPI.createFromTemplate(logTemplateId, selectedEvent.start.toISOString());
       await fetchCalendarData();
+      setShowScheduleModal(false);
+      setSelectedEvent(null);
+      setLogTemplateId('');
     } catch (error) {
       console.error('Failed to log past workout:', error);
       alert('Failed to log past workout');
     } finally {
-      setShowScheduleModal(false);
-      setSelectedEvent(null);
+      setIsLogging(false);
     }
   };
 
@@ -473,6 +478,7 @@ export default function WorkoutCalendar() {
           onClick={() => {
             setShowScheduleModal(false);
             setSelectedEvent(null);
+            setLogTemplateId('');
           }}
         >
           <div
@@ -520,27 +526,23 @@ export default function WorkoutCalendar() {
               {isSelectedDayPast && !selectedEvent.templateId && (
                 <div style={{
                   padding: '1rem',
-                  backgroundColor: 'var(--background)',
+                  backgroundColor: 'var(--primary-bg, rgba(59, 130, 246, 0.1))',
                   borderRadius: '0.5rem',
-                  border: '1px solid var(--border)',
+                  border: '2px solid var(--primary, #3b82f6)',
                 }}>
                   <label style={{
                     display: 'block',
                     marginBottom: '0.5rem',
                     fontSize: '0.875rem',
-                    fontWeight: 500,
+                    fontWeight: 600,
                   }}>
                     Log Completed Workout
                   </label>
                   <select
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleLogPastWorkout(e.target.value);
-                      }
-                    }}
+                    value={logTemplateId}
+                    onChange={(e) => setLogTemplateId(e.target.value)}
                     className="input"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', marginBottom: '0.75rem' }}
                   >
                     <option value="">Select a template...</option>
                     {templates.map((template) => (
@@ -549,6 +551,18 @@ export default function WorkoutCalendar() {
                       </option>
                     ))}
                   </select>
+                  <button
+                    onClick={handleLogPastWorkout}
+                    disabled={!logTemplateId || isLogging}
+                    className="btn btn-primary"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      opacity: !logTemplateId || isLogging ? 0.5 : 1,
+                    }}
+                  >
+                    {isLogging ? 'Logging...' : 'Log Workout'}
+                  </button>
                 </div>
               )}
 
@@ -564,6 +578,7 @@ export default function WorkoutCalendar() {
                   marginBottom: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: 500,
+                  color: 'var(--text-secondary)',
                 }}>
                   {selectedEvent.templateId ? 'Change Scheduled Workout' : 'Set Weekly Schedule'}
                 </label>
@@ -620,6 +635,7 @@ export default function WorkoutCalendar() {
                 onClick={() => {
                   setShowScheduleModal(false);
                   setSelectedEvent(null);
+                  setLogTemplateId('');
                 }}
                 className="btn btn-outline"
                 style={{ width: '100%', padding: '0.75rem' }}
