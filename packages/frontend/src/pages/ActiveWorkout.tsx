@@ -14,7 +14,7 @@ import UserProfileModal from '../components/UserProfileModal';
 export default function ActiveWorkout() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentWorkout, getWorkout, completeWorkout, deleteWorkout, saveWorkoutAsTemplate } = useWorkout();
+  const { currentWorkout, getWorkout, completeWorkout, restartWorkout, deleteWorkout, saveWorkoutAsTemplate } = useWorkout();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,7 @@ export default function ActiveWorkout() {
   const [completedWorkoutData, setCompletedWorkoutData] = useState<{ id: string; name: string; templateId: string | null } | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [restartModalOpen, setRestartModalOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -71,6 +72,17 @@ export default function ActiveWorkout() {
       }
     } catch (error) {
       console.error('Failed to complete workout:', error);
+    }
+  };
+
+  const handleRestartWorkout = async () => {
+    if (!currentWorkout) return;
+    setRestartModalOpen(false);
+
+    try {
+      await restartWorkout(currentWorkout.id);
+    } catch (error) {
+      console.error('Failed to restart workout:', error);
     }
   };
 
@@ -215,6 +227,9 @@ export default function ActiveWorkout() {
           <button onClick={() => setDeleteModalOpen(true)} className="btn btn-outline">
             Cancel
           </button>
+          <button onClick={() => setRestartModalOpen(true)} className="btn btn-outline">
+            Restart
+          </button>
           <button onClick={() => setCompleteModalOpen(true)} className="btn btn-success">
             Complete Workout
           </button>
@@ -297,13 +312,17 @@ export default function ActiveWorkout() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {currentWorkout.workoutExercises
                 .sort((a, b) => a.orderIndex - b.orderIndex)
-                .map((workoutExercise) => (
-                  <WorkoutExerciseCard
-                    key={workoutExercise.id}
-                    workoutExercise={workoutExercise}
-                    workoutId={currentWorkout.id}
-                  />
-                ))}
+                .map((workoutExercise, index, sorted) => {
+                  const activeIndex = sorted.findIndex((ex) => !ex.completed);
+                  return (
+                    <WorkoutExerciseCard
+                      key={workoutExercise.id}
+                      workoutExercise={workoutExercise}
+                      workoutId={currentWorkout.id}
+                      isActive={index === activeIndex}
+                    />
+                  );
+                })}
             </div>
           )}
         </div>
@@ -367,6 +386,18 @@ export default function ActiveWorkout() {
         cancelText="Cancel"
         onConfirm={handleCompleteWorkout}
         onCancel={() => setCompleteModalOpen(false)}
+        danger={false}
+      />
+
+      {/* Restart Workout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={restartModalOpen}
+        title="Restart Workout"
+        message="Are you sure you want to restart this workout? The timer will reset to 0."
+        confirmText="Restart"
+        cancelText="Cancel"
+        onConfirm={handleRestartWorkout}
+        onCancel={() => setRestartModalOpen(false)}
         danger={false}
       />
 

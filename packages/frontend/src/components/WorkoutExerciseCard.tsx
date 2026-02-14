@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WorkoutExercise, ExerciseType } from '@workout-tracker/shared';
 import { useWorkout } from '../contexts/WorkoutContext';
 import SetLogger from './SetLogger';
@@ -6,10 +6,17 @@ import SetLogger from './SetLogger';
 interface WorkoutExerciseCardProps {
   workoutExercise: WorkoutExercise;
   workoutId: string;
+  isActive?: boolean;
 }
 
-export default function WorkoutExerciseCard({ workoutExercise, workoutId }: WorkoutExerciseCardProps) {
-  const [expanded, setExpanded] = useState(true);
+export default function WorkoutExerciseCard({ workoutExercise, workoutId, isActive = true }: WorkoutExerciseCardProps) {
+  const [expanded, setExpanded] = useState(isActive);
+
+  useEffect(() => {
+    if (isActive) {
+      setExpanded(true);
+    }
+  }, [isActive]);
   const { completeExercise } = useWorkout();
 
   const isCardio = workoutExercise.exercise?.type === ExerciseType.CARDIO;

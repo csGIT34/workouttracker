@@ -154,6 +154,23 @@ export class WorkoutService {
     });
   }
 
+  async restartWorkout(userId: string, workoutId: string) {
+    const workout = await prisma.workout.findFirst({
+      where: { id: workoutId, userId },
+    });
+
+    if (!workout) {
+      throw new Error('Workout not found');
+    }
+
+    return prisma.workout.update({
+      where: { id: workoutId },
+      data: {
+        startedAt: new Date(),
+      },
+    });
+  }
+
   async completeWorkout(userId: string, workoutId: string) {
     const workout = await prisma.workout.findFirst({
       where: { id: workoutId, userId },

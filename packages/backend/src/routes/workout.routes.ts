@@ -174,6 +174,12 @@ export async function workoutRoutes(fastify: FastifyInstance) {
     return workoutService.completeWorkout(request.user!.userId, id);
   });
 
+  // Restart workout (reset timer)
+  fastify.patch('/:id/restart', async (request) => {
+    const { id } = request.params as any;
+    return workoutService.restartWorkout(request.user!.userId, id);
+  });
+
   // Save workout as template
   fastify.post('/:id/save-as-template', async (request, reply) => {
     try {

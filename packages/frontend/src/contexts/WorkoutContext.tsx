@@ -23,6 +23,7 @@ interface WorkoutContextType {
   completeSet: (setId: string) => Promise<void>;
   completeExercise: (workoutId: string, exerciseId: string) => Promise<void>;
   completeWorkout: (workoutId: string) => Promise<void>;
+  restartWorkout: (workoutId: string) => Promise<void>;
   deleteWorkout: (workoutId: string) => Promise<void>;
   getExercises: () => Promise<Exercise[]>;
   saveWorkoutAsTemplate: (workoutId: string, data: SaveWorkoutAsTemplateDto) => Promise<WorkoutTemplate>;
@@ -90,6 +91,11 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     setCurrentWorkout(null);
   };
 
+  const restartWorkout = async (workoutId: string) => {
+    await api.patch(`/api/v1/workouts/${workoutId}/restart`);
+    await getWorkout(workoutId);
+  };
+
   const deleteWorkout = async (workoutId: string) => {
     await api.delete(`/api/v1/workouts/${workoutId}`);
     if (currentWorkout?.id === workoutId) {
@@ -124,6 +130,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
         completeSet,
         completeExercise,
         completeWorkout,
+        restartWorkout,
         deleteWorkout,
         getExercises,
         saveWorkoutAsTemplate,
