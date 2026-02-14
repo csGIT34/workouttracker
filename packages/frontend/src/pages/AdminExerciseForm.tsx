@@ -59,7 +59,7 @@ export default function AdminExerciseForm() {
     } catch (error) {
       console.error('Failed to fetch exercise:', error);
       alert('Failed to fetch exercise');
-      navigate('/admin');
+      navigate('/exercises');
     }
   };
 
@@ -87,7 +87,7 @@ export default function AdminExerciseForm() {
           await exerciseAPI.create(data);
         }
       }
-      navigate('/admin');
+      navigate('/exercises');
     } catch (error: any) {
       console.error('Failed to save exercise:', error);
       alert(error.response?.data?.message || 'Failed to save exercise');
@@ -380,7 +380,7 @@ export default function AdminExerciseForm() {
           }}>
             <button
               type="button"
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate('/exercises')}
               className="btn btn-outline"
               style={{ flex: 1 }}
             >
