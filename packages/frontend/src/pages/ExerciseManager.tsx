@@ -25,6 +25,7 @@ export default function ExerciseManager() {
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [search, setSearch] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
@@ -147,8 +148,14 @@ export default function ExerciseManager() {
   };
 
   const filteredExercises = exercises.filter((exercise) => {
-    if (filter === 'custom') return exercise.userId !== null;
-    if (filter === 'global') return exercise.userId === null;
+    if (filter === 'custom' && exercise.userId === null) return false;
+    if (filter === 'global' && exercise.userId !== null) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return exercise.name.toLowerCase().includes(q) ||
+        exercise.muscleGroup?.name.toLowerCase().includes(q) ||
+        exercise.category?.name.toLowerCase().includes(q);
+    }
     return true;
   });
 
@@ -227,6 +234,27 @@ export default function ExerciseManager() {
           </button>
         ))}
       </div>
+
+      {/* Search */}
+      {filter !== 'muscle-groups' && filter !== 'categories' && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, muscle group, or category..."
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              border: '1px solid var(--border)',
+              borderRadius: '0.375rem',
+              fontSize: '1rem',
+              backgroundColor: 'var(--background)',
+              color: 'var(--text)',
+            }}
+          />
+        </div>
+      )}
 
       {/* Muscle Groups & Categories Management */}
       {(filter === 'muscle-groups' || filter === 'categories') ? (
