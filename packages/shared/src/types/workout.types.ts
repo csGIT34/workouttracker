@@ -34,6 +34,7 @@ export interface WorkoutExercise {
   targetReps: number;
   suggestedWeight?: number;
   previousWeight?: number;
+  previousReps?: number;
   completed: boolean;
   restBetweenSets?: number; // in seconds
   // Cardio-specific targets

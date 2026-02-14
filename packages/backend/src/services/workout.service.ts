@@ -174,13 +174,14 @@ export class WorkoutService {
         const progression = await progressionService.getProgressionForExercise(userId, we.exerciseId);
         if (progression?.lastWorkout?.avgWeight) {
           const previousWeight = progression.lastWorkout.avgWeight;
+          const previousReps = progression.lastWorkout.avgReps;
           let suggestedWeight = previousWeight;
           if (progression.recommendation === 'INCREASE_WEIGHT') {
             suggestedWeight += 5;
           }
           await prisma.workoutExercise.update({
             where: { id: we.id },
-            data: { suggestedWeight, previousWeight },
+            data: { suggestedWeight, previousWeight, previousReps },
           });
         }
       }
@@ -428,9 +429,11 @@ export class WorkoutService {
         let targetReps = templateExercise.targetReps || 10;
         let suggestedWeight: number | undefined = undefined;
         let previousWeight: number | undefined = undefined;
+        let previousReps: number | undefined = undefined;
 
         if (progression?.lastWorkout?.avgWeight) {
           previousWeight = progression.lastWorkout.avgWeight;
+          previousReps = progression.lastWorkout.avgReps;
           suggestedWeight = previousWeight;
 
           // Adjust based on progression recommendation
@@ -450,6 +453,7 @@ export class WorkoutService {
             targetReps,
             suggestedWeight,
             previousWeight,
+            previousReps,
           },
         });
       } else {
@@ -511,9 +515,11 @@ export class WorkoutService {
       let targetReps = templateExercise.targetReps;
       let suggestedWeight: number | undefined = undefined;
       let previousWeight: number | undefined = undefined;
+      let previousReps: number | undefined = undefined;
 
       if (progression?.lastWorkout?.avgWeight) {
         previousWeight = progression.lastWorkout.avgWeight;
+        previousReps = progression.lastWorkout.avgReps;
         suggestedWeight = previousWeight;
 
         // Adjust based on progression recommendation
@@ -533,6 +539,7 @@ export class WorkoutService {
           targetReps,
           suggestedWeight,
           previousWeight,
+          previousReps,
         },
       });
     }

@@ -76,12 +76,12 @@ export default function WorkoutExerciseCard({ workoutExercise, workoutId, isActi
                 {completedSets} / {workoutExercise.targetSets} sets • {workoutExercise.targetReps} reps target
                 {workoutExercise.previousWeight && (
                   <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)' }}>
-                    • Last: {Math.round(workoutExercise.previousWeight)} lbs
+                    • Last: {Math.round(workoutExercise.previousWeight)} lbs x {Math.round(workoutExercise.previousReps || 0)}
                   </span>
                 )}
                 {workoutExercise.suggestedWeight && (
                   <span style={{ marginLeft: '0.25rem', color: 'var(--primary)', fontWeight: 600 }}>
-                    {workoutExercise.previousWeight ? '→' : '•'} {Math.round(workoutExercise.suggestedWeight)} lbs
+                    → {Math.round(workoutExercise.suggestedWeight)} lbs x {workoutExercise.targetReps}
                   </span>
                 )}
               </>
