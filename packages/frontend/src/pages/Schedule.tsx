@@ -88,8 +88,9 @@ export default function Schedule() {
 
       const calendarEvents: CalendarEvent[] = calendarData.flatMap((day: any) => {
         const events: CalendarEvent[] = [];
-        const dayDate = new Date(day.date);
-        dayDate.setHours(0, 0, 0, 0);
+        // Parse as local date using UTC components to avoid timezone shift
+        const utcDate = new Date(day.date);
+        const dayDate = new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
         const isPastDay = dayDate < today;
 
         // Process all workouts for this day
@@ -103,8 +104,8 @@ export default function Schedule() {
               events.push({
                 id: workout.id,
                 title: `${workout.name} ✓`,
-                start: new Date(day.date),
-                end: new Date(day.date),
+                start: dayDate,
+                end: dayDate,
                 type: 'completed-scheduled',
                 workoutId: workout.id,
                 color: day.schedule.template?.color || '#10b981',
@@ -114,8 +115,8 @@ export default function Schedule() {
               events.push({
                 id: workout.id,
                 title: `${workout.name} (In Progress)`,
-                start: new Date(day.date),
-                end: new Date(day.date),
+                start: dayDate,
+                end: dayDate,
                 type: 'in-progress',
                 workoutId: workout.id,
                 color: day.schedule.template?.color || '#f59e0b',
@@ -125,8 +126,8 @@ export default function Schedule() {
               events.push({
                 id: workout.id,
                 title: `${workout.name} ✓`,
-                start: new Date(day.date),
-                end: new Date(day.date),
+                start: dayDate,
+                end: dayDate,
                 type: 'completed',
                 workoutId: workout.id,
                 color: '#10b981',
@@ -136,8 +137,8 @@ export default function Schedule() {
               events.push({
                 id: workout.id,
                 title: `${workout.name} (In Progress)`,
-                start: new Date(day.date),
-                end: new Date(day.date),
+                start: dayDate,
+                end: dayDate,
                 type: 'in-progress',
                 workoutId: workout.id,
                 color: '#f59e0b',
@@ -157,24 +158,24 @@ export default function Schedule() {
             events.push({
               id: `missed-${day.date}`,
               title: `${day.schedule.template?.name} ✗`,
-              start: new Date(day.date),
-              end: new Date(day.date),
+              start: dayDate,
+              end: dayDate,
               type: 'missed',
               templateId: day.schedule.templateId,
               color: '#ef4444',
-              dayOfWeek: new Date(day.date).getDay(),
+              dayOfWeek: day.dayOfWeek,
             });
           } else {
             // Scheduled workout upcoming
             events.push({
               id: `schedule-${day.date}`,
               title: day.schedule.template?.name || 'Workout',
-              start: new Date(day.date),
-              end: new Date(day.date),
+              start: dayDate,
+              end: dayDate,
               type: 'scheduled',
               templateId: day.schedule.templateId,
               color: day.schedule.template?.color || '#3b82f6',
-              dayOfWeek: new Date(day.date).getDay(),
+              dayOfWeek: day.dayOfWeek,
             });
           }
         }

@@ -181,6 +181,7 @@ export class ScheduleService {
     // Build calendar data
     const calendarData: Array<{
       date: Date;
+      dayOfWeek: number;
       schedule: typeof schedules[number] | undefined;
       workouts: Array<{
         id: string;
@@ -197,7 +198,17 @@ export class ScheduleService {
       const dayOfWeek = date.getDay();
 
       // Find scheduled workout for this day
-      const schedule = schedules.find((s) => s.dayOfWeek === dayOfWeek);
+      const matchedSchedule = schedules.find((s) => s.dayOfWeek === dayOfWeek);
+
+      // Only show schedule for dates on or after the schedule was created
+      let schedule: typeof matchedSchedule | undefined = undefined;
+      if (matchedSchedule) {
+        const scheduleCreatedDate = new Date(matchedSchedule.createdAt);
+        scheduleCreatedDate.setHours(0, 0, 0, 0);
+        if (date >= scheduleCreatedDate) {
+          schedule = matchedSchedule;
+        }
+      }
 
       // Find ALL workouts for this day (can have multiple: scheduled + ad-hoc)
       const dayWorkouts = workouts.filter((w) => {
@@ -211,6 +222,7 @@ export class ScheduleService {
 
       calendarData.push({
         date,
+        dayOfWeek,
         schedule,
         workouts: dayWorkouts.map((w) => ({
           id: w.id,
