@@ -57,6 +57,11 @@ export class ProgressionService {
     let recommendation: ProgressionRecommendation;
     let recommendationDetails: string;
 
+    // Calculate max RPE to detect sets where user struggled
+    const maxRPE = setsWithRPE.length > 0
+      ? Math.max(...setsWithRPE.map(s => s.rpe || 0))
+      : null;
+
     // If we have RPE data, use it for better recommendations
     if (avgRPE !== null) {
       // RPE Scale: 1-6 = Easy, 7-8 = Moderate, 9-10 = Very Hard
@@ -65,15 +70,15 @@ export class ProgressionService {
         if (avgRPE <= 7) {
           // Easy to moderate - increase weight
           recommendation = ProgressionRecommendation.INCREASE_WEIGHT;
-          recommendationDetails = `Completed all sets/reps with RPE ${avgRPE.toFixed(1)}. Increase weight by 5 lbs.`;
+          recommendationDetails = `Completed all sets/reps with avg RPE ${avgRPE.toFixed(1)}. Increase weight by 5 lbs.`;
         } else if (avgRPE <= 8.5) {
           // Challenging but doable - add reps first
           recommendation = ProgressionRecommendation.MORE_REPS;
-          recommendationDetails = `Completed all sets/reps but RPE was ${avgRPE.toFixed(1)}. Add 2 more reps before increasing weight.`;
+          recommendationDetails = `Completed all sets/reps but avg RPE was ${avgRPE.toFixed(1)}. Add 2 more reps before increasing weight.`;
         } else {
           // Very hard - maintain
           recommendation = ProgressionRecommendation.MAINTAIN;
-          recommendationDetails = `Completed sets but RPE was very high (${avgRPE.toFixed(1)}). Maintain current weight to build strength.`;
+          recommendationDetails = `Completed sets but avg RPE was very high (${avgRPE.toFixed(1)}). Maintain current weight to build strength.`;
         }
       } else if (completionRate >= 0.9) {
         // Almost all reps completed
@@ -88,6 +93,15 @@ export class ProgressionService {
         // Struggled significantly
         recommendation = ProgressionRecommendation.MAINTAIN;
         recommendationDetails = `Completed ${Math.round(completionRate * 100)}% of target reps. Maintain current weight.`;
+      }
+
+      // Cap recommendation based on max RPE — don't suggest increases when any set was near failure
+      if (maxRPE !== null && maxRPE >= 10 && recommendation !== ProgressionRecommendation.MAINTAIN) {
+        recommendation = ProgressionRecommendation.MAINTAIN;
+        recommendationDetails = `At least one set was max effort (RPE 10). Maintain current weight to build strength.`;
+      } else if (maxRPE !== null && maxRPE >= 9 && recommendation === ProgressionRecommendation.INCREASE_WEIGHT) {
+        recommendation = ProgressionRecommendation.MORE_REPS;
+        recommendationDetails = `Avg RPE was ${avgRPE.toFixed(1)} but peaked at RPE ${maxRPE}. Add reps before increasing weight.`;
       }
     } else {
       // No RPE data - fall back to completion rate only

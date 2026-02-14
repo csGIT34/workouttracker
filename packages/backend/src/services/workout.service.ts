@@ -173,13 +173,14 @@ export class WorkoutService {
       if (we.exercise.type === ExerciseType.STRENGTH) {
         const progression = await progressionService.getProgressionForExercise(userId, we.exerciseId);
         if (progression?.lastWorkout?.avgWeight) {
-          let suggestedWeight = progression.lastWorkout.avgWeight;
+          const previousWeight = progression.lastWorkout.avgWeight;
+          let suggestedWeight = previousWeight;
           if (progression.recommendation === 'INCREASE_WEIGHT') {
             suggestedWeight += 5;
           }
           await prisma.workoutExercise.update({
             where: { id: we.id },
-            data: { suggestedWeight },
+            data: { suggestedWeight, previousWeight },
           });
         }
       }
@@ -426,12 +427,14 @@ export class WorkoutService {
         let targetSets = templateExercise.targetSets || 3;
         let targetReps = templateExercise.targetReps || 10;
         let suggestedWeight: number | undefined = undefined;
+        let previousWeight: number | undefined = undefined;
 
         if (progression?.lastWorkout?.avgWeight) {
-          suggestedWeight = progression.lastWorkout.avgWeight;
+          previousWeight = progression.lastWorkout.avgWeight;
+          suggestedWeight = previousWeight;
 
           // Adjust based on progression recommendation
-          if (progression.recommendation === 'INCREASE_WEIGHT' && suggestedWeight !== undefined) {
+          if (progression.recommendation === 'INCREASE_WEIGHT') {
             suggestedWeight += 5; // Add 5 lbs
           } else if (progression.recommendation === 'MORE_REPS') {
             targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15
@@ -446,6 +449,7 @@ export class WorkoutService {
             targetSets,
             targetReps,
             suggestedWeight,
+            previousWeight,
           },
         });
       } else {
@@ -506,12 +510,14 @@ export class WorkoutService {
       let targetSets = templateExercise.targetSets;
       let targetReps = templateExercise.targetReps;
       let suggestedWeight: number | undefined = undefined;
+      let previousWeight: number | undefined = undefined;
 
       if (progression?.lastWorkout?.avgWeight) {
-        suggestedWeight = progression.lastWorkout.avgWeight;
+        previousWeight = progression.lastWorkout.avgWeight;
+        suggestedWeight = previousWeight;
 
         // Adjust based on progression recommendation
-        if (progression.recommendation === 'INCREASE_WEIGHT' && suggestedWeight !== undefined) {
+        if (progression.recommendation === 'INCREASE_WEIGHT') {
           suggestedWeight += 5; // Add 5 lbs
         } else if (progression.recommendation === 'MORE_REPS') {
           targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15
@@ -526,6 +532,7 @@ export class WorkoutService {
           targetSets,
           targetReps,
           suggestedWeight,
+          previousWeight,
         },
       });
     }

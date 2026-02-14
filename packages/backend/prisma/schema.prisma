@@ -148,6 +148,7 @@ model WorkoutExercise {
   targetSets      Int
   targetReps      Int
   suggestedWeight Float?
+  previousWeight  Float?
   completed       Boolean  @default(false)
   restBetweenSets Int?     // in seconds (30, 120, 180, etc.)
   createdAt       DateTime @default(now())
