@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: csdock34/workout-frontend:latest
+          image: govocm/workout-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

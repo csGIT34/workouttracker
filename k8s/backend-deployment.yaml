@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: csdock34/workout-backend:latest
+          image: govocm/workout-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

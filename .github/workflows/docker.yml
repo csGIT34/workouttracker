@@ -48,7 +48,7 @@ jobs:
           context: .
           file: ./packages/backend/Dockerfile
           push: true
-          tags: csdock34/workout-backend:latest
+          tags: govocm/workout-backend:latest
 
   build-frontend:
     needs: changes
@@ -67,4 +67,4 @@ jobs:
           context: .
           file: ./packages/frontend/Dockerfile
           push: true
-          tags: csdock34/workout-frontend:latest
+          tags: govocm/workout-frontend:latest

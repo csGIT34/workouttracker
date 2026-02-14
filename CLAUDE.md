@@ -229,8 +229,8 @@ Copy from `.env.example` in that directory.
 
 ```bash
 # From root - must use -f flag because Dockerfiles expect root context
-docker build -t csdock34/workout-backend:latest -f ./packages/backend/Dockerfile .
-docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfile .
+docker build -t govocm/workout-backend:latest -f ./packages/backend/Dockerfile .
+docker build -t govocm/workout-frontend:latest -f ./packages/frontend/Dockerfile .
 ```
 
 Note: The npm `docker:build` scripts have incorrect build context. Use the commands above instead.
@@ -261,10 +261,10 @@ To deploy code changes, just push to `master`. GitHub Actions automatically buil
 
 ```bash
 # 1. Build and push Docker images (from repo root)
-docker build -t csdock34/workout-backend:latest -f ./packages/backend/Dockerfile .
-docker build -t csdock34/workout-frontend:latest -f ./packages/frontend/Dockerfile .
-docker push csdock34/workout-backend:latest
-docker push csdock34/workout-frontend:latest
+docker build -t govocm/workout-backend:latest -f ./packages/backend/Dockerfile .
+docker build -t govocm/workout-frontend:latest -f ./packages/frontend/Dockerfile .
+docker push govocm/workout-backend:latest
+docker push govocm/workout-frontend:latest
 
 # 2. Restart deployments to pull new images
 kubectl rollout restart deployment/frontend deployment/backend -n workout-tracker
