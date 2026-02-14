@@ -186,7 +186,7 @@ export default function ExerciseManager() {
           </p>
         </div>
         <button
-          onClick={() => navigate('/exercises/new')}
+          onClick={() => navigate(isAdmin ? '/admin/exercises/new' : '/exercises/new')}
           className="btn btn-primary"
           style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}
         >
