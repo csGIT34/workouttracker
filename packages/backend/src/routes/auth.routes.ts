@@ -133,14 +133,19 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       const decoded = fastify.jwt.verify(refreshToken);
       const userId = (decoded as any).userId;
-      const email = (decoded as any).email;
-      const role = (decoded as any).role;
 
-      // Generate new access token
+      // Fetch current user data from DB to pick up role changes
+      const currentUser = await authService.getUserById(userId);
+      if (!currentUser) {
+        reply.status(401).send({ error: 'User not found' });
+        return;
+      }
+
+      // Generate new access token with current role from DB
       const newAccessToken = fastify.jwt.sign({
         userId,
-        email,
-        role,
+        email: currentUser.email,
+        role: currentUser.role,
       });
 
       return {
