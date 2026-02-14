@@ -161,22 +161,18 @@ export class ExerciseService {
       where: { exerciseId },
     });
 
-    // Return warning info along with deletion
-    const warningInfo = {
-      hasTemplates: templateCount > 0,
-      hasProgression: progressionCount > 0,
-      hasWorkouts: workoutCount > 0,
-      templateCount,
-      progressionCount,
-      workoutCount,
-    };
-
-    // Delete the exercise (cascade will handle related records)
-    await prisma.exercise.delete({
-      where: { id: exerciseId },
+    // Delete the exercise and all references in a transaction
+    await prisma.$transaction(async (tx) => {
+      if (templateCount > 0) {
+        await tx.templateExercise.deleteMany({ where: { exerciseId } });
+      }
+      if (progressionCount > 0) {
+        await tx.exerciseProgression.deleteMany({ where: { exerciseId, userId } });
+      }
+      await tx.exercise.delete({ where: { id: exerciseId } });
     });
 
-    return warningInfo;
+    return { deleted: true, templateCount, progressionCount, workoutCount };
   }
 
   /**
@@ -271,22 +267,18 @@ export class ExerciseService {
       where: { exerciseId },
     });
 
-    // Return warning info along with deletion
-    const warningInfo = {
-      hasTemplates: templateCount > 0,
-      hasProgression: progressionCount > 0,
-      hasWorkouts: workoutCount > 0,
-      templateCount,
-      progressionCount,
-      workoutCount,
-    };
-
-    // Delete the exercise (cascade will handle related records)
-    await prisma.exercise.delete({
-      where: { id: exerciseId },
+    // Delete the exercise and all references in a transaction
+    await prisma.$transaction(async (tx) => {
+      if (templateCount > 0) {
+        await tx.templateExercise.deleteMany({ where: { exerciseId } });
+      }
+      if (progressionCount > 0) {
+        await tx.exerciseProgression.deleteMany({ where: { exerciseId } });
+      }
+      await tx.exercise.delete({ where: { id: exerciseId } });
     });
 
-    return warningInfo;
+    return { deleted: true, templateCount, progressionCount, workoutCount };
   }
 }
 
