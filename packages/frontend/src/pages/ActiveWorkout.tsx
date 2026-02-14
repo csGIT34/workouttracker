@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { Exercise, WorkoutExercise, ExerciseType } from '@workout-tracker/shared';
+import { Exercise, WorkoutExercise, ExerciseType, WorkoutStatus } from '@workout-tracker/shared';
 import Stopwatch from '../components/Stopwatch';
 import ExerciseSelector from '../components/ExerciseSelector';
 import WorkoutExerciseCard from '../components/WorkoutExerciseCard';
@@ -204,6 +204,7 @@ export default function ActiveWorkout() {
     return <div>Workout not found</div>;
   }
 
+  const isCompleted = currentWorkout.status === WorkoutStatus.COMPLETED;
   const startTime = new Date(currentWorkout.startedAt);
   const elapsedMinutes = Math.floor((Date.now() - startTime.getTime()) / 1000 / 60);
 
@@ -220,19 +221,30 @@ export default function ActiveWorkout() {
             {currentWorkout.name}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Started {elapsedMinutes} minutes ago
+            {isCompleted
+              ? `Completed ${new Date(currentWorkout.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+              : `Started ${elapsedMinutes} minutes ago`
+            }
           </p>
         </div>
         <div className="workout-header-actions" style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setDeleteModalOpen(true)} className="btn btn-outline">
-            Cancel
-          </button>
-          <button onClick={() => setRestartModalOpen(true)} className="btn btn-outline">
-            Restart
-          </button>
-          <button onClick={() => setCompleteModalOpen(true)} className="btn btn-success">
-            Complete Workout
-          </button>
+          {isCompleted ? (
+            <button onClick={() => navigate(`/workouts/${currentWorkout.id}`)} className="btn btn-outline">
+              Back to Details
+            </button>
+          ) : (
+            <>
+              <button onClick={() => setDeleteModalOpen(true)} className="btn btn-outline">
+                Cancel
+              </button>
+              <button onClick={() => setRestartModalOpen(true)} className="btn btn-outline">
+                Restart
+              </button>
+              <button onClick={() => setCompleteModalOpen(true)} className="btn btn-success">
+                Complete Workout
+              </button>
+            </>
+          )}
         </div>
       </div>
 
