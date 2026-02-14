@@ -157,7 +157,22 @@ a:hover {
   color: #475569;
 }
 
-/* ========== Mobile Responsive ========== */
+/* ========== Hamburger button — hidden on desktop ========== */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  color: var(--text);
+  font-size: 1.5rem;
+}
+
+/* ========== Mobile Responsive (must come after base rules) ========== */
 @media (max-width: 768px) {
   /* Container */
   .container {
@@ -171,9 +186,9 @@ a:hover {
 
   /* Page headers (title + action button) */
   .page-header {
-    flex-direction: column;
+    flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 0.75rem;
+    gap: 0.75rem !important;
   }
   .page-header h1 {
     font-size: 1.5rem !important;
@@ -181,7 +196,7 @@ a:hover {
 
   /* Navigation */
   .nav-bar {
-    padding: 0.75rem 0;
+    padding: 0.75rem 0 !important;
   }
   .nav-links {
     display: none;
@@ -222,13 +237,13 @@ a:hover {
 
   /* Workout header (ActiveWorkout) */
   .workout-header {
-    flex-direction: column;
+    flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 0.75rem;
+    gap: 0.75rem !important;
   }
   .workout-header-actions {
-    width: 100%;
-    display: flex;
+    width: 100% !important;
+    display: flex !important;
     gap: 0.5rem;
   }
   .workout-header-actions .btn {
@@ -261,15 +276,15 @@ a:hover {
 
   /* History card metadata */
   .history-card-meta {
-    flex-wrap: wrap;
+    flex-wrap: wrap !important;
     gap: 0.5rem !important;
   }
   .history-card-layout {
-    flex-direction: column;
+    flex-direction: column !important;
   }
   .history-card-actions {
-    width: 100%;
-    display: flex;
+    width: 100% !important;
+    display: flex !important;
     gap: 0.5rem;
     margin-top: 0.75rem;
   }
@@ -311,21 +326,6 @@ a:hover {
   .content-grid {
     grid-template-columns: 1fr !important;
   }
-}
-
-/* Hamburger button - hidden by default on desktop */
-.hamburger-btn {
-  display: none !important;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  color: var(--text);
-  font-size: 1.5rem;
 }
 
 @media (min-width: 769px) {
