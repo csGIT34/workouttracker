@@ -321,7 +321,7 @@ export class WorkoutService {
     });
   }
 
-  async createWorkoutFromTemplate(userId: string, templateId: string) {
+  async createWorkoutFromTemplate(userId: string, templateId: string, startDate?: string) {
     // Get the template
     const template = await prisma.workoutTemplate.findFirst({
       where: {
@@ -342,13 +342,19 @@ export class WorkoutService {
       throw new Error('Workout template not found');
     }
 
+    // If startDate is provided, create a completed backdated workout
+    const isBackdated = !!startDate;
+    const backdatedDate = startDate ? new Date(startDate) : undefined;
+
     // Create new workout
     const newWorkout = await prisma.workout.create({
       data: {
         userId,
         name: template.name,
         templateId: template.id,
-        status: WorkoutStatus.IN_PROGRESS,
+        status: isBackdated ? WorkoutStatus.COMPLETED : WorkoutStatus.IN_PROGRESS,
+        startedAt: backdatedDate,
+        completedAt: isBackdated ? backdatedDate : undefined,
       },
     });
 

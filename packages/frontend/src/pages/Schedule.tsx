@@ -272,6 +272,30 @@ export default function Schedule() {
     setShowScheduleModal(true);
   };
 
+  const isSelectedDayPast = (() => {
+    if (!selectedEvent?.start) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventDay = new Date(selectedEvent.start);
+    eventDay.setHours(0, 0, 0, 0);
+    return eventDay < today;
+  })();
+
+  const handleLogPastWorkout = async (templateId: string) => {
+    if (!selectedEvent?.start) return;
+
+    try {
+      await workoutAPI.createFromTemplate(templateId, selectedEvent.start.toISOString());
+      await fetchCalendarData();
+    } catch (error) {
+      console.error('Failed to log past workout:', error);
+      alert('Failed to log past workout');
+    } finally {
+      setShowScheduleModal(false);
+      setSelectedEvent(null);
+    }
+  };
+
   const handleStartWorkout = async () => {
     if (!selectedEvent || !selectedEvent.templateId) return;
 
@@ -768,14 +792,18 @@ export default function Schedule() {
                 ? selectedEvent.type === 'missed'
                   ? String(selectedEvent.title || '').replace(' ✗', '')
                   : selectedEvent.title
-                : `Schedule Workout - ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedEvent.dayOfWeek || 0]}`}
+                : isSelectedDayPast
+                  ? `Log Past Workout - ${selectedEvent.start?.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}`
+                  : `Schedule Workout - ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedEvent.dayOfWeek || 0]}`}
             </h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
               {selectedEvent.templateId
                 ? selectedEvent.type === 'missed'
                   ? 'This scheduled workout was missed. You can start it now, change the schedule, or clear it.'
                   : 'Choose an action for this scheduled workout.'
-                : 'Select a workout template to schedule for this day of the week.'}
+                : isSelectedDayPast
+                  ? 'Select a template to log a completed workout for this date.'
+                  : 'Select a workout template to schedule for this day of the week.'}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -788,6 +816,42 @@ export default function Schedule() {
                 >
                   Start Workout
                 </button>
+              )}
+
+              {/* Log Past Workout Section - show for past empty days */}
+              {isSelectedDayPast && !selectedEvent.templateId && (
+                <div style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--background)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border)',
+                }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                  }}>
+                    Log Completed Workout
+                  </label>
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleLogPastWorkout(e.target.value);
+                      }
+                    }}
+                    className="input"
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">Select a template...</option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
 
               {/* Change/Add Schedule Section */}
@@ -803,7 +867,7 @@ export default function Schedule() {
                   fontSize: '0.875rem',
                   fontWeight: 500,
                 }}>
-                  {selectedEvent.templateId ? 'Change Scheduled Workout' : 'Select Workout Template'}
+                  {selectedEvent.templateId ? 'Change Scheduled Workout' : 'Set Weekly Schedule'}
                 </label>
                 <select
                   defaultValue={selectedEvent.templateId || ''}

@@ -9,6 +9,7 @@ const createWorkoutSchema = z.object({
 
 const createFromTemplateSchema = z.object({
   templateId: z.string().uuid(),
+  startDate: z.string().datetime().optional(),
 });
 
 const createFromPreviousWorkoutSchema = z.object({
@@ -108,7 +109,8 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       const data = createFromTemplateSchema.parse(request.body);
       return workoutService.createWorkoutFromTemplate(
         request.user!.userId,
-        data.templateId
+        data.templateId,
+        data.startDate
       );
     } catch (error) {
       if (error instanceof z.ZodError) {

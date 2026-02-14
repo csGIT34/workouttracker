@@ -109,8 +109,8 @@ export const analyticsAPI = {
 // Workout API - add new endpoint
 export const workoutAPI = {
   getActive: () => api.get(`/api/v1/workouts/active`),
-  createFromTemplate: (templateId: string) =>
-    api.post(`/api/v1/workouts/from-template`, { templateId }),
+  createFromTemplate: (templateId: string, startDate?: string) =>
+    api.post(`/api/v1/workouts/from-template`, { templateId, ...(startDate && { startDate }) }),
 };
 
 // Exercise API
