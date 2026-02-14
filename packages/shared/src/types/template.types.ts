@@ -19,6 +19,7 @@ export interface TemplateExercise {
   orderIndex: number;
   targetSets?: number | null;
   targetReps?: number | null;
+  restBetweenSets?: number | null;
   targetDurationMinutes?: number | null;
   targetDistanceMiles?: number | null;
   notes?: string | null;
@@ -44,6 +45,7 @@ export interface AddExerciseToTemplateDto {
   exerciseId: string;
   targetSets?: number;
   targetReps?: number;
+  restBetweenSets?: number;
   targetDurationMinutes?: number;
   targetDistanceMiles?: number;
   notes?: string;
@@ -52,6 +54,7 @@ export interface AddExerciseToTemplateDto {
 export interface UpdateTemplateExerciseDto {
   targetSets?: number;
   targetReps?: number;
+  restBetweenSets?: number;
   targetDurationMinutes?: number;
   targetDistanceMiles?: number;
   notes?: string;

@@ -97,7 +97,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
         // Template mode - use custom callback
         const data = selectedExercise.type === ExerciseType.CARDIO
           ? { targetSets: 1, targetDurationMinutes, targetDistanceMiles }
-          : { targetSets, targetReps };
+          : { targetSets, targetReps, restBetweenSets };
         onAddExercise(selectedExercise, data);
       } else if (workoutId) {
         // Workout mode - use workout context

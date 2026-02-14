@@ -22,6 +22,7 @@ export default function TemplateForm() {
   const [editValues, setEditValues] = useState<{
     targetSets?: number;
     targetReps?: number;
+    restBetweenSets?: number;
     targetDurationMinutes?: number;
     targetDistanceMiles?: number;
   }>({});
@@ -106,6 +107,7 @@ export default function TemplateForm() {
     setEditValues({
       targetSets: te.targetSets ?? undefined,
       targetReps: te.targetReps ?? undefined,
+      restBetweenSets: te.restBetweenSets ?? undefined,
       targetDurationMinutes: te.targetDurationMinutes ?? undefined,
       targetDistanceMiles: te.targetDistanceMiles ?? undefined,
     });
@@ -297,6 +299,7 @@ export default function TemplateForm() {
                               ) : (
                                 <>
                                   {te.targetSets} sets × {te.targetReps} reps
+                                  {te.restBetweenSets ? ` • ${te.restBetweenSets >= 60 ? `${te.restBetweenSets / 60}min` : `${te.restBetweenSets}s`} rest` : ''}
                                 </>
                               )}
                             </div>
@@ -372,6 +375,7 @@ export default function TemplateForm() {
                             </div>
                           </div>
                         ) : (
+                          <>
                           <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
                             <div style={{ flex: 1 }}>
                               <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
@@ -402,6 +406,38 @@ export default function TemplateForm() {
                               />
                             </div>
                           </div>
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                              Rest Between Sets
+                            </label>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {[
+                                { label: '30s', value: 30 },
+                                { label: '60s', value: 60 },
+                                { label: '90s', value: 90 },
+                                { label: '2min', value: 120 },
+                                { label: '3min', value: 180 },
+                              ].map(({ label, value }) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setEditValues({ ...editValues, restBetweenSets: value })}
+                                  style={{
+                                    padding: '0.375rem 0.75rem',
+                                    fontSize: '0.8rem',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '0.375rem',
+                                    cursor: 'pointer',
+                                    backgroundColor: editValues.restBetweenSets === value ? 'var(--primary)' : 'var(--background)',
+                                    color: editValues.restBetweenSets === value ? 'white' : 'var(--text)',
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          </>
                         )}
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                           <button

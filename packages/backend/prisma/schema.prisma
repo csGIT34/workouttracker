@@ -234,6 +234,8 @@ model TemplateExercise {
   targetSets Int?
   targetReps Int?
 
+  restBetweenSets Int?     // in seconds (30, 60, 90, 120, 180)
+
   // For cardio exercises
   targetDurationMinutes Float?
   targetDistanceMiles   Float?

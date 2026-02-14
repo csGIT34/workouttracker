@@ -139,6 +139,7 @@ export class TemplateService {
         orderIndex: maxOrder + 1,
         targetSets: data.targetSets,
         targetReps: data.targetReps,
+        restBetweenSets: data.restBetweenSets,
         targetDurationMinutes: data.targetDurationMinutes,
         targetDistanceMiles: data.targetDistanceMiles,
         notes: data.notes,
@@ -181,6 +182,7 @@ export class TemplateService {
       data: {
         targetSets: data.targetSets,
         targetReps: data.targetReps,
+        restBetweenSets: data.restBetweenSets,
         targetDurationMinutes: data.targetDurationMinutes,
         targetDistanceMiles: data.targetDistanceMiles,
         notes: data.notes,

@@ -20,6 +20,7 @@ const addExerciseSchema = z.object({
   exerciseId: z.string().uuid(),
   targetSets: z.number().min(1).optional(),
   targetReps: z.number().min(1).optional(),
+  restBetweenSets: z.number().min(0).optional(),
   targetDurationMinutes: z.number().min(0).optional(),
   targetDistanceMiles: z.number().min(0).optional(),
   notes: z.string().optional(),
@@ -28,6 +29,7 @@ const addExerciseSchema = z.object({
 const updateExerciseSchema = z.object({
   targetSets: z.number().min(1).optional(),
   targetReps: z.number().min(1).optional(),
+  restBetweenSets: z.number().min(0).optional(),
   targetDurationMinutes: z.number().min(0).optional(),
   targetDistanceMiles: z.number().min(0).optional(),
   notes: z.string().optional(),
