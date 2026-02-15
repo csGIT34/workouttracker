@@ -122,7 +122,7 @@ export default function ActiveWorkout() {
 
   // Calculate current calories burned (real-time estimate)
   const currentCalories = useMemo(() => {
-    if (!currentWorkout || !user?.weight) return null;
+    if (!currentWorkout || !currentWorkout.workoutExercises || !user?.weight) return null;
 
     // Convert weight to kg if needed
     const weightKg = user.weightUnit === 'KG' ? user.weight : user.weight / 2.20462;
