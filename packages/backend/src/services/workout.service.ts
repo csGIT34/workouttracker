@@ -159,7 +159,7 @@ export class WorkoutService {
       where: { id: workoutId, userId },
       include: {
         workoutExercises: {
-          include: { exercise: true },
+          include: { exercise: { include: { category: true } } },
         },
       },
     });
@@ -176,7 +176,8 @@ export class WorkoutService {
           const previousWeight = progression.lastWorkout.avgWeight;
           const previousReps = progression.lastWorkout.avgReps;
           let suggestedWeight = previousWeight;
-          if (progression.recommendation === 'INCREASE_WEIGHT') {
+          const isDumbbellUnder50 = (we.exercise as any).category?.name === 'DUMBBELL' && previousWeight < 50;
+          if (progression.recommendation === 'INCREASE_WEIGHT' && !isDumbbellUnder50) {
             suggestedWeight += 5;
           }
           await prisma.workoutExercise.update({
@@ -270,7 +271,8 @@ export class WorkoutService {
         durationMinutes: data.durationMinutes,
         distanceMiles: data.distanceMiles,
         caloriesBurned: data.caloriesBurned,
-        completed: true,
+        notes: data.notes,
+        completed: data.completed ?? true,
       },
     });
 
@@ -387,7 +389,7 @@ export class WorkoutService {
       include: {
         templateExercises: {
           include: {
-            exercise: true,
+            exercise: { include: { category: true } },
           },
           orderBy: { orderIndex: 'asc' },
         },
@@ -437,7 +439,8 @@ export class WorkoutService {
           suggestedWeight = previousWeight;
 
           // Adjust based on progression recommendation
-          if (progression.recommendation === 'INCREASE_WEIGHT') {
+          const isDumbbellUnder50 = (exercise as any).category?.name === 'DUMBBELL' && previousWeight < 50;
+          if (progression.recommendation === 'INCREASE_WEIGHT' && !isDumbbellUnder50) {
             suggestedWeight += 5; // Add 5 lbs
           } else if (progression.recommendation === 'MORE_REPS') {
             targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15
@@ -484,7 +487,7 @@ export class WorkoutService {
       include: {
         workoutExercises: {
           include: {
-            exercise: true,
+            exercise: { include: { category: true } },
           },
         },
       },
@@ -523,7 +526,8 @@ export class WorkoutService {
         suggestedWeight = previousWeight;
 
         // Adjust based on progression recommendation
-        if (progression.recommendation === 'INCREASE_WEIGHT') {
+        const isDumbbellUnder50 = (templateExercise.exercise as any).category?.name === 'DUMBBELL' && previousWeight < 50;
+        if (progression.recommendation === 'INCREASE_WEIGHT' && !isDumbbellUnder50) {
           suggestedWeight += 5; // Add 5 lbs
         } else if (progression.recommendation === 'MORE_REPS') {
           targetReps = Math.min(targetReps + 2, 15); // Add 2 reps, max 15

@@ -15,7 +15,7 @@ export class ProgressionService {
       include: {
         sets: true,
         workout: true,
-        exercise: true,
+        exercise: { include: { category: true } },
       },
       orderBy: {
         workout: {
@@ -115,6 +115,21 @@ export class ProgressionService {
         recommendation = ProgressionRecommendation.MAINTAIN;
         recommendationDetails = `Struggled with current weight. Maintain current weight and reps.`;
       }
+    }
+
+    // Dumbbell override: for dumbbell exercises under 50 lbs, prefer reps over weight
+    const categoryName = (lastWorkout.exercise as any).category?.name;
+    if (
+      categoryName === 'DUMBBELL' &&
+      avgWeight < 50 &&
+      recommendation === ProgressionRecommendation.INCREASE_WEIGHT
+    ) {
+      if (avgReps < targetReps + 4) {
+        const pct = Math.round((5 / avgWeight) * 100);
+        recommendation = ProgressionRecommendation.MORE_REPS;
+        recommendationDetails = `Dumbbell under 50 lbs — add reps before weight. 5 lb jump is a ${pct}% increase.`;
+      }
+      // If avgReps >= targetReps + 4, keep INCREASE_WEIGHT — enough rep capacity built
     }
 
     // Update or create progression record

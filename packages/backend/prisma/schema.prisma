@@ -203,6 +203,7 @@ model Set {
   distanceMiles     Float?
   caloriesBurned    Int?
 
+  notes             String?
   completed         Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

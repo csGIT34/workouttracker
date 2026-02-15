@@ -20,6 +20,7 @@ export interface Set {
   distanceMiles?: number;
   caloriesBurned?: number;
 
+  notes?: string | null;
   completed: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -92,6 +93,9 @@ export interface LogSetDto {
   durationMinutes?: number;
   distanceMiles?: number;
   caloriesBurned?: number;
+  // Optional metadata
+  completed?: boolean;
+  notes?: string;
 }
 
 export interface UpdateSetDto {
@@ -104,6 +108,7 @@ export interface UpdateSetDto {
   distanceMiles?: number;
   caloriesBurned?: number;
   completed?: boolean;
+  notes?: string;
 }
 
 export interface WorkoutSummary {

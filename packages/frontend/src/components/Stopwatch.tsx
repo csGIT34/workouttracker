@@ -5,15 +5,14 @@ interface StopwatchProps {
 }
 
 export default function Stopwatch({ onComplete }: StopwatchProps) {
-  const { time, isRunning, targetTime, start, pause, reset, startWithPreset, formatTime, progress } = useStopwatch();
+  const { time, isRunning, targetTime, isComplete, start, pause, reset, startWithPreset, formatTime, progress } = useStopwatch();
 
   const presets = [
     { label: '30s', seconds: 30 },
+    { label: '1min', seconds: 60 },
     { label: '2min', seconds: 120 },
     { label: '3min', seconds: 180 },
   ];
-
-  const isComplete = targetTime !== null && time >= targetTime;
 
   return (
     <div className="card" style={{
@@ -30,16 +29,6 @@ export default function Stopwatch({ onComplete }: StopwatchProps) {
         }}>
           {formatTime(time)}
         </div>
-        {targetTime && (
-          <div style={{
-            textAlign: 'center',
-            fontSize: '0.875rem',
-            color: 'var(--text-secondary)',
-            marginTop: '0.25rem',
-          }}>
-            Target: {formatTime(targetTime)}
-          </div>
-        )}
       </div>
 
       {targetTime && (

@@ -33,6 +33,9 @@ const logSetSchema = z.object({
   durationMinutes: z.number().min(0).optional(),
   distanceMiles: z.number().min(0).optional(),
   caloriesBurned: z.number().min(0).optional(),
+  // Optional metadata
+  completed: z.boolean().optional(),
+  notes: z.string().optional(),
 });
 
 const updateSetSchema = z.object({
@@ -45,6 +48,7 @@ const updateSetSchema = z.object({
   distanceMiles: z.number().min(0).optional(),
   caloriesBurned: z.number().min(0).optional(),
   completed: z.boolean().optional(),
+  notes: z.string().optional(),
 });
 
 const saveAsTemplateSchema = z.object({

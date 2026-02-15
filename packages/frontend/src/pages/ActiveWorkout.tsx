@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkout } from '../contexts/WorkoutContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useWakeLock } from '../hooks/useWakeLock';
 import { Exercise, WorkoutExercise, ExerciseType, WorkoutStatus } from '@workout-tracker/shared';
 import Stopwatch from '../components/Stopwatch';
 import ExerciseSelector from '../components/ExerciseSelector';
@@ -12,6 +13,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import UserProfileModal from '../components/UserProfileModal';
 
 export default function ActiveWorkout() {
+  useWakeLock();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentWorkout, getWorkout, completeWorkout, restartWorkout, deleteWorkout, saveWorkoutAsTemplate } = useWorkout();
@@ -249,7 +251,8 @@ export default function ActiveWorkout() {
       </div>
 
       {isMobile && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'var(--background)', paddingBottom: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
               Rest Timer
@@ -285,6 +288,7 @@ export default function ActiveWorkout() {
                 </>
               )}
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -340,7 +344,7 @@ export default function ActiveWorkout() {
         </div>
 
         {!isMobile && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: '1rem', alignSelf: 'start' }}>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
                 Rest Timer
