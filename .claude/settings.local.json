@@ -28,7 +28,22 @@
       "Bash(kubectl config get-contexts:*)",
       "Bash(kubectl config view:*)",
       "Bash(ssh:*)",
-      "Bash(sshpass -p 'Hiroproto34' ssh -o StrictHostKeyChecking=no root@10.0.20.10 cat /etc/rancher/k3s/k3s.yaml)"
+      "Bash(sshpass -p 'Hiroproto34' ssh -o StrictHostKeyChecking=no root@10.0.20.10 cat /etc/rancher/k3s/k3s.yaml)",
+      "Bash(find:*)",
+      "Bash(git -C /home/zerocool/github/homelab ls-files:*)",
+      "Bash(cd /home/zerocool/github/workouttracker && npm run build:frontend:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(gh run list:*)",
+      "Bash(git -C /home/zerocool/github/workouttracker status)",
+      "Bash(git -C /home/zerocool/github/workouttracker diff)",
+      "Bash(git -C /home/zerocool/github/workouttracker log --oneline -5)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:frontend:*)",
+      "Bash(git push:*)"
     ]
   }
 }
