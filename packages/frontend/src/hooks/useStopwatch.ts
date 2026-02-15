@@ -11,23 +11,9 @@ export function useStopwatch() {
   const [isRunning, setIsRunning] = useState(false);
   const [targetTime, setTargetTime] = useState<number | null>(null);
   const intervalRef = useRef<number>();
-  const playedSoundsRef = useRef<Set<number>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
-
-  // Get or create a shared AudioContext (must be initialized during user gesture)
-  const getAudioContext = (): AudioContext | null => {
-    try {
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        audioContextRef.current = new AudioContext();
-      }
-      if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-      return audioContextRef.current;
-    } catch (e) {
-      return null;
-    }
-  };
+  // Track scheduled oscillators so we can cancel them on pause/reset
+  const scheduledOscillatorsRef = useRef<OscillatorNode[]>([]);
 
   useEffect(() => {
     // Load saved state from localStorage
@@ -77,31 +63,23 @@ export function useStopwatch() {
     }
   }, [time, targetTime, isRunning]);
 
-  // Countdown sounds at 3, 2, 1, 0
-  useEffect(() => {
-    if (!isRunning || targetTime === null) return;
-
-    if (time <= 3 && time >= 1 && !playedSoundsRef.current.has(time)) {
-      playedSoundsRef.current.add(time);
-      playSound(600, 0.15, 0.7);
+  // Cancel all scheduled sounds
+  const cancelScheduledSounds = () => {
+    for (const osc of scheduledOscillatorsRef.current) {
+      try { osc.stop(); } catch (e) { /* already stopped */ }
     }
+    scheduledOscillatorsRef.current = [];
+  };
 
-    if (time <= 0 && !playedSoundsRef.current.has(0)) {
-      playedSoundsRef.current.add(0);
-      playSound(900, 0.4, 0.9);
-    }
-  }, [time, isRunning, targetTime]);
-
-  const playSound = async (frequency: number, duration: number, gainValue: number) => {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-
+  // Schedule a sound at an exact future time using Web Audio API timing
+  const scheduleSound = (
+    ctx: AudioContext,
+    startAt: number,
+    frequency: number,
+    duration: number,
+    gainValue: number
+  ) => {
     try {
-      // Mobile browsers may re-suspend; always resume before playing
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
@@ -111,47 +89,65 @@ export function useStopwatch() {
       oscillator.frequency.value = frequency;
       oscillator.type = 'sine';
 
-      gainNode.gain.setValueAtTime(gainValue, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+      gainNode.gain.setValueAtTime(gainValue, startAt);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startAt + duration);
 
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + duration);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + duration);
+
+      scheduledOscillatorsRef.current.push(oscillator);
     } catch (e) {
-      // Audio may not be available
+      // Audio scheduling failed
     }
   };
 
   const start = () => setIsRunning(true);
 
-  const pause = () => setIsRunning(false);
+  const pause = () => {
+    setIsRunning(false);
+    cancelScheduledSounds();
+  };
 
   const reset = () => {
     setTime(0);
     setIsRunning(false);
     setTargetTime(null);
-    playedSoundsRef.current.clear();
+    cancelScheduledSounds();
   };
 
   const startWithPreset = (seconds: number) => {
-    // Initialize AudioContext during user gesture and play silent sound to unlock mobile audio
-    const ctx = getAudioContext();
-    if (ctx) {
-      try {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.01);
-      } catch (e) {
-        // ignore
+    // Cancel any previously scheduled sounds
+    cancelScheduledSounds();
+
+    // Create/resume AudioContext during user gesture (required by all browsers)
+    let ctx: AudioContext | null = null;
+    try {
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new AudioContext();
       }
+      ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    } catch (e) {
+      // Web Audio not available
     }
+
+    // Pre-schedule all countdown sounds from within this user gesture
+    // This is the only reliable way to play sounds on iOS
+    if (ctx) {
+      const now = ctx.currentTime;
+      // Tick sounds at 3, 2, 1 seconds remaining
+      if (seconds > 3) scheduleSound(ctx, now + (seconds - 3), 600, 0.15, 0.7);
+      if (seconds > 2) scheduleSound(ctx, now + (seconds - 2), 600, 0.15, 0.7);
+      if (seconds > 1) scheduleSound(ctx, now + (seconds - 1), 600, 0.15, 0.7);
+      // Completion sound at 0
+      scheduleSound(ctx, now + seconds, 900, 0.4, 0.9);
+    }
+
     setTime(seconds);
     setTargetTime(seconds);
     setIsRunning(true);
-    playedSoundsRef.current.clear();
   };
 
   const formatTime = (seconds: number): string => {
