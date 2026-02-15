@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { exerciseAPI, adminAPI } from '../services/api';
-import { Exercise } from '@workout-tracker/shared';
+import { Exercise, Difficulty } from '@workout-tracker/shared';
 import { useAuth } from '../contexts/AuthContext';
+import ExerciseDetailModal from '../components/ExerciseDetailModal';
 
 type FilterType = 'all' | 'custom' | 'global' | 'muscle-groups' | 'categories';
 
@@ -16,6 +17,22 @@ interface Category {
   name: string;
 }
 
+const difficultyColors: Record<string, { bg: string; color: string }> = {
+  BEGINNER: { bg: 'rgba(16, 185, 129, 0.1)', color: 'rgb(16, 185, 129)' },
+  INTERMEDIATE: { bg: 'rgba(245, 158, 11, 0.1)', color: 'rgb(245, 158, 11)' },
+  ADVANCED: { bg: 'rgba(239, 68, 68, 0.1)', color: 'rgb(239, 68, 68)' },
+};
+
+function parseJsonArray(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function ExerciseManager() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([]);
@@ -26,9 +43,11 @@ export default function ExerciseManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [search, setSearch] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
+  const [detailExercise, setDetailExercise] = useState<Exercise | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -150,6 +169,7 @@ export default function ExerciseManager() {
   const filteredExercises = exercises.filter((exercise) => {
     if (filter === 'custom' && exercise.userId === null) return false;
     if (filter === 'global' && exercise.userId !== null) return false;
+    if (difficultyFilter && exercise.difficulty !== difficultyFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return exercise.name.toLowerCase().includes(q) ||
@@ -235,16 +255,16 @@ export default function ExerciseManager() {
         ))}
       </div>
 
-      {/* Search */}
+      {/* Search & Filters */}
       {filter !== 'muscle-groups' && filter !== 'categories' && (
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, muscle group, or category..."
             style={{
-              width: '100%',
+              flex: 1,
               padding: '0.75rem 1rem',
               border: '1px solid var(--border)',
               borderRadius: '0.375rem',
@@ -253,6 +273,26 @@ export default function ExerciseManager() {
               color: 'var(--text)',
             }}
           />
+          <select
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            style={{
+              padding: '0.75rem 1rem',
+              border: '1px solid var(--border)',
+              borderRadius: '0.375rem',
+              fontSize: '1rem',
+              backgroundColor: 'var(--background)',
+              color: 'var(--text)',
+              minWidth: '160px',
+            }}
+          >
+            <option value="">All Difficulties</option>
+            {Object.values(Difficulty).map((d) => (
+              <option key={d} value={d}>
+                {d.charAt(0) + d.slice(1).toLowerCase()}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -418,6 +458,8 @@ export default function ExerciseManager() {
         }}>
           {filteredExercises.map((exercise) => {
             const isCustom = exercise.userId !== null;
+            const secondaryMuscles = parseJsonArray(exercise.secondaryMuscles);
+            const difficulty = exercise.difficulty as string | undefined;
 
             return (
               <div
@@ -426,6 +468,7 @@ export default function ExerciseManager() {
                 style={{
                   position: 'relative',
                   transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
@@ -435,20 +478,38 @@ export default function ExerciseManager() {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = '';
                 }}
+                onClick={() => setDetailExercise(exercise)}
               >
-                {/* Badge */}
+                {/* Badges - top right */}
                 <div style={{
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '1rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  backgroundColor: isCustom ? 'var(--primary)' : 'var(--border)',
-                  color: isCustom ? 'white' : 'var(--text-secondary)'
+                  display: 'flex',
+                  gap: '0.375rem',
                 }}>
-                  {isCustom ? 'Custom' : 'Global'}
+                  {difficulty && difficultyColors[difficulty] && (
+                    <span style={{
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      backgroundColor: difficultyColors[difficulty].bg,
+                      color: difficultyColors[difficulty].color,
+                    }}>
+                      {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}
+                    </span>
+                  )}
+                  <span style={{
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '1rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    backgroundColor: isCustom ? 'var(--primary)' : 'var(--border)',
+                    color: isCustom ? 'white' : 'var(--text-secondary)'
+                  }}>
+                    {isCustom ? 'Custom' : 'Global'}
+                  </span>
                 </div>
 
                 {/* Content */}
@@ -458,7 +519,7 @@ export default function ExerciseManager() {
                     fontWeight: '600',
                     marginBottom: '0.5rem',
                     color: 'var(--text)',
-                    paddingRight: '5rem'
+                    paddingRight: '8rem'
                   }}>
                     {exercise.name}
                   </h3>
@@ -485,7 +546,7 @@ export default function ExerciseManager() {
                     display: 'flex',
                     flexWrap: 'wrap',
                     gap: '0.5rem',
-                    marginBottom: '1rem'
+                    marginBottom: '0.75rem'
                   }}>
                     <span style={{
                       padding: '0.25rem 0.75rem',
@@ -495,7 +556,7 @@ export default function ExerciseManager() {
                       backgroundColor: exercise.type === 'STRENGTH' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
                       color: exercise.type === 'STRENGTH' ? 'rgb(59, 130, 246)' : 'rgb(16, 185, 129)'
                     }}>
-                      {exercise.type === 'STRENGTH' ? '💪 Strength' : '🏃 Cardio'}
+                      {exercise.type === 'STRENGTH' ? 'Strength' : 'Cardio'}
                     </span>
                     {exercise.muscleGroup && (
                       <span style={{
@@ -523,6 +584,41 @@ export default function ExerciseManager() {
                     )}
                   </div>
 
+                  {/* Secondary Muscles */}
+                  {secondaryMuscles.length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '0.25rem',
+                      marginBottom: '0.75rem',
+                    }}>
+                      {secondaryMuscles.slice(0, 3).map((muscle) => (
+                        <span
+                          key={muscle}
+                          style={{
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.7rem',
+                            backgroundColor: 'var(--background)',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          {muscle}
+                        </span>
+                      ))}
+                      {secondaryMuscles.length > 3 && (
+                        <span style={{
+                          padding: '0.15rem 0.5rem',
+                          fontSize: '0.7rem',
+                          color: 'var(--text-secondary)',
+                        }}>
+                          +{secondaryMuscles.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Actions - Show for custom exercises, or all exercises if admin */}
                   {(isCustom || isAdmin) && (
                     <div style={{
@@ -532,14 +628,20 @@ export default function ExerciseManager() {
                       borderTop: '1px solid var(--border)'
                     }}>
                       <button
-                        onClick={() => navigate(isAdmin ? `/admin/exercises/${exercise.id}/edit` : `/exercises/${exercise.id}/edit`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(isAdmin ? `/admin/exercises/${exercise.id}/edit` : `/exercises/${exercise.id}/edit`);
+                        }}
                         className="btn btn-outline"
                         style={{ flex: 1, fontSize: '0.875rem' }}
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(exercise.id, exercise.name, !isCustom)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(exercise.id, exercise.name, !isCustom);
+                        }}
                         style={{
                           padding: '0.5rem 1rem',
                           border: '1px solid var(--danger)',
@@ -569,6 +671,14 @@ export default function ExerciseManager() {
             );
           })}
         </div>
+      )}
+
+      {/* Exercise Detail Modal */}
+      {detailExercise && (
+        <ExerciseDetailModal
+          exercise={detailExercise}
+          onClose={() => setDetailExercise(null)}
+        />
       )}
 
       {/* Confirmation Modal */}

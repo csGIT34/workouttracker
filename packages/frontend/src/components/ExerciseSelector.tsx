@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useWorkout } from '../contexts/WorkoutContext';
-import { Exercise, MuscleGroup, ExerciseCategory, ExerciseType } from '@workout-tracker/shared';
+import { Exercise, MuscleGroup, ExerciseCategory, ExerciseType, Difficulty } from '@workout-tracker/shared';
 import api from '../services/api';
 
 interface ExerciseSelectorProps {
@@ -35,6 +35,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
   const [restBetweenSets, setRestBetweenSets] = useState(90); // in seconds, default 90s
   const [filterMuscleGroup, setFilterMuscleGroup] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('');
+  const [filterDifficulty, setFilterDifficulty] = useState<string>('');
   const [search, setSearch] = useState('');
   const [progression, setProgression] = useState<ProgressionData | null>(null);
   const { getExercises, addExerciseToWorkout } = useWorkout();
@@ -55,8 +56,9 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
   const filteredExercises = exercises.filter((ex) => {
     const matchesMuscle = !filterMuscleGroup || ex.muscleGroup?.name === filterMuscleGroup;
     const matchesType = !filterType || ex.type === filterType;
+    const matchesDifficulty = !filterDifficulty || ex.difficulty === filterDifficulty;
     const matchesSearch = !search || ex.name.toLowerCase().includes(search.toLowerCase());
-    return matchesMuscle && matchesType && matchesSearch;
+    return matchesMuscle && matchesType && matchesDifficulty && matchesSearch;
   });
 
   useEffect(() => {
@@ -150,7 +152,7 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           <select
             className="input"
             value={filterType}
@@ -170,6 +172,18 @@ export default function ExerciseSelector({ workoutId, onClose, onAddExercise }: 
             {Object.values(MuscleGroup).map((group) => (
               <option key={group} value={group}>
                 {group}
+              </option>
+            ))}
+          </select>
+          <select
+            className="input"
+            value={filterDifficulty}
+            onChange={(e) => setFilterDifficulty(e.target.value)}
+          >
+            <option value="">All Difficulties</option>
+            {Object.values(Difficulty).map((d) => (
+              <option key={d} value={d}>
+                {d.charAt(0) + d.slice(1).toLowerCase()}
               </option>
             ))}
           </select>

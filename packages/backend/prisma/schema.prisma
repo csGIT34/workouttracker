@@ -38,6 +38,23 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Force {
+  PUSH
+  PULL
+  STATIC
+}
+
+enum Mechanic {
+  COMPOUND
+  ISOLATION
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -98,6 +115,14 @@ model Exercise {
   categoryId       String?
   type             ExerciseType @default(STRENGTH)
   metValue         Float?       // MET value for cardio exercises
+  difficulty       Difficulty?
+  force            Force?
+  mechanic         Mechanic?
+  secondaryMuscles String?      // JSON string array e.g. '["triceps","shoulders"]'
+  specificMuscle   String?      // Granular muscle name
+  videoUrl         String?      // YouTube URL
+  aliases          String?      // JSON string array of alternate names
+  instructions     String?      // Text description of how to perform
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 

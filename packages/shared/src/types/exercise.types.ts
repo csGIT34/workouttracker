@@ -23,6 +23,26 @@ export const ExerciseType = {
 } as const;
 export type ExerciseType = (typeof ExerciseType)[keyof typeof ExerciseType];
 
+export const Difficulty = {
+  BEGINNER: 'BEGINNER',
+  INTERMEDIATE: 'INTERMEDIATE',
+  ADVANCED: 'ADVANCED'
+} as const;
+export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
+
+export const Force = {
+  PUSH: 'PUSH',
+  PULL: 'PULL',
+  STATIC: 'STATIC'
+} as const;
+export type Force = (typeof Force)[keyof typeof Force];
+
+export const Mechanic = {
+  COMPOUND: 'COMPOUND',
+  ISOLATION: 'ISOLATION'
+} as const;
+export type Mechanic = (typeof Mechanic)[keyof typeof Mechanic];
+
 export interface MuscleGroupData {
   id: string;
   name: string;
@@ -47,7 +67,15 @@ export interface Exercise {
   muscleGroup?: MuscleGroupData | null;
   category?: ExerciseCategoryData | null;
   type: ExerciseType;
-  metValue?: number | null; // MET value for cardio exercises
+  metValue?: number | null;
+  difficulty?: Difficulty | null;
+  force?: Force | null;
+  mechanic?: Mechanic | null;
+  secondaryMuscles?: string | null;
+  specificMuscle?: string | null;
+  videoUrl?: string | null;
+  aliases?: string | null;
+  instructions?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +87,14 @@ export interface CreateExerciseDto {
   categoryId?: string;
   type?: ExerciseType;
   metValue?: number;
+  difficulty?: Difficulty;
+  force?: Force;
+  mechanic?: Mechanic;
+  secondaryMuscles?: string;
+  specificMuscle?: string;
+  videoUrl?: string;
+  aliases?: string;
+  instructions?: string;
 }
 
 export interface UpdateExerciseDto {
@@ -68,4 +104,12 @@ export interface UpdateExerciseDto {
   categoryId?: string;
   type?: ExerciseType;
   metValue?: number;
+  difficulty?: Difficulty | null;
+  force?: Force | null;
+  mechanic?: Mechanic | null;
+  secondaryMuscles?: string | null;
+  specificMuscle?: string | null;
+  videoUrl?: string | null;
+  aliases?: string | null;
+  instructions?: string | null;
 }

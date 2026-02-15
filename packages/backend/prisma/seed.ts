@@ -1,6 +1,29 @@
 import { PrismaClient } from '@prisma/client';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 const prisma = new PrismaClient();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+interface ExerciseData {
+  name: string;
+  description: string;
+  muscleGroup: string | null;
+  category: string | null;
+  type: 'STRENGTH' | 'CARDIO';
+  metValue: number | null;
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | null;
+  force: 'PUSH' | 'PULL' | 'STATIC' | null;
+  mechanic: 'COMPOUND' | 'ISOLATION' | null;
+  secondaryMuscles: string[] | null;
+  specificMuscle: string | null;
+  videoUrl: string | null;
+  aliases: string[] | null;
+  instructions: string | null;
+}
 
 async function main() {
   console.log('Seeding database...');
@@ -27,355 +50,12 @@ async function main() {
   }
   console.log('Exercise categories seeded');
 
-  // Check if exercises already exist
-  const existingExercisesCount = await prisma.exercise.count();
+  // Load exercise data from JSON
+  const exerciseDataPath = join(__dirname, 'exercise-data.json');
+  const exercises: ExerciseData[] = JSON.parse(readFileSync(exerciseDataPath, 'utf-8'));
+  console.log(`Loaded ${exercises.length} exercises from exercise-data.json`);
 
-  // Seed exercises (will only create if they don't exist)
-  const exercises = [
-    // Chest - Barbell
-    {
-      name: 'Barbell Bench Press',
-      description: 'Classic compound chest exercise',
-      muscleGroup: 'CHEST',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Incline Barbell Bench Press',
-      description: 'Targets upper chest',
-      muscleGroup: 'CHEST',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Decline Barbell Bench Press',
-      description: 'Targets lower chest',
-      muscleGroup: 'CHEST',
-      category: 'BARBELL',
-    },
-
-    // Chest - Dumbbell
-    {
-      name: 'Dumbbell Bench Press',
-      description: 'Greater range of motion than barbell',
-      muscleGroup: 'CHEST',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Incline Dumbbell Press',
-      description: 'Upper chest focus with dumbbells',
-      muscleGroup: 'CHEST',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Dumbbell Flyes',
-      description: 'Isolation exercise for chest',
-      muscleGroup: 'CHEST',
-      category: 'DUMBBELL',
-    },
-
-    // Chest - Cable/Bodyweight
-    {
-      name: 'Push-ups',
-      description: 'Bodyweight chest exercise',
-      muscleGroup: 'CHEST',
-      category: 'BODYWEIGHT',
-    },
-    {
-      name: 'Cable Flyes',
-      description: 'Constant tension on chest',
-      muscleGroup: 'CHEST',
-      category: 'CABLE',
-    },
-
-    // Back - Barbell
-    {
-      name: 'Barbell Deadlift',
-      description: 'Compound full-body exercise',
-      muscleGroup: 'BACK',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Barbell Row',
-      description: 'Horizontal pulling movement',
-      muscleGroup: 'BACK',
-      category: 'BARBELL',
-    },
-
-    // Back - Dumbbell/Bodyweight
-    {
-      name: 'Dumbbell Row',
-      description: 'Unilateral back exercise',
-      muscleGroup: 'BACK',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Pull-ups',
-      description: 'Vertical pulling bodyweight exercise',
-      muscleGroup: 'BACK',
-      category: 'BODYWEIGHT',
-    },
-    {
-      name: 'Chin-ups',
-      description: 'Underhand grip pull-up variation',
-      muscleGroup: 'BACK',
-      category: 'BODYWEIGHT',
-    },
-
-    // Back - Cable/Machine
-    {
-      name: 'Lat Pulldown',
-      description: 'Machine alternative to pull-ups',
-      muscleGroup: 'BACK',
-      category: 'MACHINE',
-    },
-    {
-      name: 'Cable Row',
-      description: 'Seated rowing movement',
-      muscleGroup: 'BACK',
-      category: 'CABLE',
-    },
-
-    // Shoulders - Barbell
-    {
-      name: 'Overhead Press',
-      description: 'Compound shoulder press',
-      muscleGroup: 'SHOULDERS',
-      category: 'BARBELL',
-    },
-
-    // Shoulders - Dumbbell
-    {
-      name: 'Dumbbell Shoulder Press',
-      description: 'Overhead press with dumbbells',
-      muscleGroup: 'SHOULDERS',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Lateral Raises',
-      description: 'Isolation for side delts',
-      muscleGroup: 'SHOULDERS',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Front Raises',
-      description: 'Isolation for front delts',
-      muscleGroup: 'SHOULDERS',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Rear Delt Flyes',
-      description: 'Targets rear deltoids',
-      muscleGroup: 'SHOULDERS',
-      category: 'DUMBBELL',
-    },
-
-    // Legs - Barbell
-    {
-      name: 'Barbell Squat',
-      description: 'King of leg exercises',
-      muscleGroup: 'LEGS',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Front Squat',
-      description: 'Quad-focused squat variation',
-      muscleGroup: 'LEGS',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Romanian Deadlift',
-      description: 'Hamstring and glute focus',
-      muscleGroup: 'LEGS',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Barbell Lunges',
-      description: 'Unilateral leg exercise',
-      muscleGroup: 'LEGS',
-      category: 'BARBELL',
-    },
-
-    // Legs - Machine/Bodyweight
-    {
-      name: 'Leg Press',
-      description: 'Machine-based leg exercise',
-      muscleGroup: 'LEGS',
-      category: 'MACHINE',
-    },
-    {
-      name: 'Leg Extension',
-      description: 'Quad isolation',
-      muscleGroup: 'LEGS',
-      category: 'MACHINE',
-    },
-    {
-      name: 'Leg Curl',
-      description: 'Hamstring isolation',
-      muscleGroup: 'LEGS',
-      category: 'MACHINE',
-    },
-    {
-      name: 'Calf Raises',
-      description: 'Targets calf muscles',
-      muscleGroup: 'LEGS',
-      category: 'MACHINE',
-    },
-
-    // Arms - Barbell
-    {
-      name: 'Barbell Curl',
-      description: 'Classic bicep exercise',
-      muscleGroup: 'ARMS',
-      category: 'BARBELL',
-    },
-    {
-      name: 'Close-Grip Bench Press',
-      description: 'Tricep-focused pressing movement',
-      muscleGroup: 'ARMS',
-      category: 'BARBELL',
-    },
-
-    // Arms - Dumbbell
-    {
-      name: 'Dumbbell Curl',
-      description: 'Bicep isolation with dumbbells',
-      muscleGroup: 'ARMS',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Hammer Curl',
-      description: 'Targets brachialis',
-      muscleGroup: 'ARMS',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Tricep Kickback',
-      description: 'Isolation for triceps',
-      muscleGroup: 'ARMS',
-      category: 'DUMBBELL',
-    },
-    {
-      name: 'Overhead Tricep Extension',
-      description: 'Long head tricep focus',
-      muscleGroup: 'ARMS',
-      category: 'DUMBBELL',
-    },
-
-    // Arms - Cable/Bodyweight
-    {
-      name: 'Cable Curl',
-      description: 'Constant tension bicep curl',
-      muscleGroup: 'ARMS',
-      category: 'CABLE',
-    },
-    {
-      name: 'Tricep Pushdown',
-      description: 'Cable tricep isolation',
-      muscleGroup: 'ARMS',
-      category: 'CABLE',
-    },
-    {
-      name: 'Dips',
-      description: 'Bodyweight tricep exercise',
-      muscleGroup: 'ARMS',
-      category: 'BODYWEIGHT',
-    },
-
-    // Core
-    {
-      name: 'Plank',
-      description: 'Isometric core exercise',
-      muscleGroup: 'CORE',
-      category: 'BODYWEIGHT',
-    },
-    {
-      name: 'Crunches',
-      description: 'Ab isolation',
-      muscleGroup: 'CORE',
-      category: 'BODYWEIGHT',
-    },
-    {
-      name: 'Russian Twists',
-      description: 'Oblique focused movement',
-      muscleGroup: 'CORE',
-      category: 'BODYWEIGHT',
-    },
-    {
-      name: 'Leg Raises',
-      description: 'Lower ab focus',
-      muscleGroup: 'CORE',
-      category: 'BODYWEIGHT',
-    },
-    {
-      name: 'Cable Woodchoppers',
-      description: 'Rotational core exercise',
-      muscleGroup: 'CORE',
-      category: 'CABLE',
-    },
-
-    // Cardio exercises with MET values
-    {
-      name: 'Running',
-      description: 'Outdoor or treadmill running',
-      type: 'CARDIO',
-      metValue: 9.0,
-    },
-    {
-      name: 'Cycling',
-      description: 'Stationary bike or outdoor cycling',
-      type: 'CARDIO',
-      metValue: 7.5,
-    },
-    {
-      name: 'Walking',
-      description: 'Brisk walking or power walking',
-      type: 'CARDIO',
-      metValue: 4.0,
-    },
-    {
-      name: 'Swimming',
-      description: 'Freestyle, backstroke, or other swimming styles',
-      type: 'CARDIO',
-      metValue: 8.0,
-    },
-    {
-      name: 'Rowing',
-      description: 'Rowing machine or water rowing',
-      type: 'CARDIO',
-      metValue: 8.5,
-    },
-    {
-      name: 'Elliptical',
-      description: 'Elliptical machine cardio',
-      type: 'CARDIO',
-      metValue: 5.0,
-    },
-    {
-      name: 'Jump Rope',
-      description: 'Skipping rope cardio exercise',
-      type: 'CARDIO',
-      metValue: 11.0,
-    },
-    {
-      name: 'Stair Climbing',
-      description: 'Stair machine or actual stairs',
-      type: 'CARDIO',
-      metValue: 8.0,
-    },
-    {
-      name: 'HIIT',
-      description: 'High-intensity interval training',
-      type: 'CARDIO',
-      metValue: 10.0,
-    },
-    {
-      name: 'Boxing',
-      description: 'Heavy bag work or boxing drills',
-      type: 'CARDIO',
-      metValue: 9.0,
-    },
-  ];
-
-  // Get muscle groups and categories for lookup
+  // Build lookup maps for muscle groups and categories
   const muscleGroupMap = new Map<string, string>();
   const categoryMap = new Map<string, string>();
 
@@ -393,36 +73,37 @@ async function main() {
   let updatedCount = 0;
 
   for (const exercise of exercises) {
-    // Check if exercise already exists by name
     const existing = await prisma.exercise.findFirst({
       where: { name: exercise.name },
     });
 
-    const muscleGroupId = muscleGroupMap.get(exercise.muscleGroup);
-    const categoryId = categoryMap.get(exercise.category);
+    const muscleGroupId = exercise.muscleGroup ? muscleGroupMap.get(exercise.muscleGroup) : undefined;
+    const categoryId = exercise.category ? categoryMap.get(exercise.category) : undefined;
+
+    const data = {
+      name: exercise.name,
+      description: exercise.description,
+      type: exercise.type || 'STRENGTH',
+      metValue: exercise.metValue ?? undefined,
+      muscleGroupId: muscleGroupId ?? undefined,
+      categoryId: categoryId ?? undefined,
+      difficulty: exercise.difficulty ?? undefined,
+      force: exercise.force ?? undefined,
+      mechanic: exercise.mechanic ?? undefined,
+      secondaryMuscles: exercise.secondaryMuscles ? JSON.stringify(exercise.secondaryMuscles) : undefined,
+      specificMuscle: exercise.specificMuscle ?? undefined,
+      videoUrl: exercise.videoUrl ?? undefined,
+      aliases: exercise.aliases ? JSON.stringify(exercise.aliases) : undefined,
+      instructions: exercise.instructions ?? undefined,
+    };
 
     if (!existing) {
-      await prisma.exercise.create({
-        data: {
-          name: exercise.name,
-          description: exercise.description,
-          type: exercise.type || 'STRENGTH',
-          metValue: exercise.metValue,
-          muscleGroupId,
-          categoryId,
-        },
-      });
+      await prisma.exercise.create({ data });
       createdCount++;
     } else {
-      // Update existing exercise with new fields (like metValue and description)
       await prisma.exercise.update({
         where: { id: existing.id },
-        data: {
-          description: exercise.description,
-          metValue: exercise.metValue,
-          muscleGroupId,
-          categoryId,
-        },
+        data,
       });
       updatedCount++;
     }
@@ -430,12 +111,8 @@ async function main() {
 
   console.log(`Seed complete: ${createdCount} exercises created, ${updatedCount} exercises updated.`);
 
-  if (existingExercisesCount === 0) {
-    console.log(`Total exercises in database: ${exercises.length}`);
-  } else {
-    const totalExercises = await prisma.exercise.count();
-    console.log(`Total exercises in database: ${totalExercises}`);
-  }
+  const totalExercises = await prisma.exercise.count();
+  console.log(`Total exercises in database: ${totalExercises}`);
 }
 
 main()

@@ -10,6 +10,14 @@ const createExerciseSchema = z.object({
   muscleGroupId: z.string().optional(),
   categoryId: z.string().optional(),
   type: z.enum(['STRENGTH', 'CARDIO']).optional(),
+  difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).optional(),
+  force: z.enum(['PUSH', 'PULL', 'STATIC']).optional(),
+  mechanic: z.enum(['COMPOUND', 'ISOLATION']).optional(),
+  secondaryMuscles: z.string().optional(),
+  specificMuscle: z.string().optional(),
+  videoUrl: z.string().optional(),
+  aliases: z.string().optional(),
+  instructions: z.string().optional(),
 });
 
 const updateExerciseSchema = z.object({
@@ -18,6 +26,14 @@ const updateExerciseSchema = z.object({
   muscleGroupId: z.string().optional(),
   categoryId: z.string().optional(),
   type: z.enum(['STRENGTH', 'CARDIO']).optional(),
+  difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).nullable().optional(),
+  force: z.enum(['PUSH', 'PULL', 'STATIC']).nullable().optional(),
+  mechanic: z.enum(['COMPOUND', 'ISOLATION']).nullable().optional(),
+  secondaryMuscles: z.string().nullable().optional(),
+  specificMuscle: z.string().nullable().optional(),
+  videoUrl: z.string().nullable().optional(),
+  aliases: z.string().nullable().optional(),
+  instructions: z.string().nullable().optional(),
 });
 
 export async function exerciseRoutes(fastify: FastifyInstance) {
