@@ -92,11 +92,16 @@ export function useStopwatch() {
     }
   }, [time, isRunning, targetTime]);
 
-  const playSound = (frequency: number, duration: number, gain: number) => {
+  const playSound = async (frequency: number, duration: number, gainValue: number) => {
     const ctx = getAudioContext();
     if (!ctx) return;
 
     try {
+      // Mobile browsers may re-suspend; always resume before playing
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
@@ -106,7 +111,7 @@ export function useStopwatch() {
       oscillator.frequency.value = frequency;
       oscillator.type = 'sine';
 
-      gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+      gainNode.gain.setValueAtTime(gainValue, ctx.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
 
       oscillator.start(ctx.currentTime);
@@ -128,8 +133,21 @@ export function useStopwatch() {
   };
 
   const startWithPreset = (seconds: number) => {
-    // Initialize AudioContext during user gesture so it's allowed to play later
-    getAudioContext();
+    // Initialize AudioContext during user gesture and play silent sound to unlock mobile audio
+    const ctx = getAudioContext();
+    if (ctx) {
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.01);
+      } catch (e) {
+        // ignore
+      }
+    }
     setTime(seconds);
     setTargetTime(seconds);
     setIsRunning(true);
