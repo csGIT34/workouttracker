@@ -12,6 +12,22 @@ export function useStopwatch() {
   const [targetTime, setTargetTime] = useState<number | null>(null);
   const intervalRef = useRef<number>();
   const playedSoundsRef = useRef<Set<number>>(new Set());
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Get or create a shared AudioContext (must be initialized during user gesture)
+  const getAudioContext = (): AudioContext | null => {
+    try {
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new AudioContext();
+      }
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+      return audioContextRef.current;
+    } catch (e) {
+      return null;
+    }
+  };
 
   useEffect(() => {
     // Load saved state from localStorage
@@ -77,24 +93,26 @@ export function useStopwatch() {
   }, [time, isRunning, targetTime]);
 
   const playSound = (frequency: number, duration: number, gain: number) => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
     try {
-      const audioContext = new AudioContext();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
       oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      gainNode.connect(ctx.destination);
 
       oscillator.frequency.value = frequency;
       oscillator.type = 'sine';
 
-      gainNode.gain.setValueAtTime(gain, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
 
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + duration);
     } catch (e) {
-      // Audio may not be available in all contexts
+      // Audio may not be available
     }
   };
 
@@ -110,6 +128,8 @@ export function useStopwatch() {
   };
 
   const startWithPreset = (seconds: number) => {
+    // Initialize AudioContext during user gesture so it's allowed to play later
+    getAudioContext();
     setTime(seconds);
     setTargetTime(seconds);
     setIsRunning(true);

@@ -186,7 +186,7 @@ export default function ActiveWorkout() {
     return Math.round(totalCalories);
   }, [currentWorkout, user]);
 
-  if (loading) {
+  if (loading || (currentWorkout && !currentWorkout.workoutExercises)) {
     return <div>Loading workout...</div>;
   }
 
@@ -251,45 +251,8 @@ export default function ActiveWorkout() {
       </div>
 
       {isMobile && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'var(--background)', paddingBottom: '1rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-              Rest Timer
-            </h2>
-            <Stopwatch />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-              Calories Burned
-            </h2>
-            <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-              {user?.weight ? (
-                <>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                    {currentCalories !== null ? currentCalories : 0}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    kcal (estimate)
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                    Set your weight to track calories
-                  </div>
-                  <button
-                    onClick={() => setShowProfileModal(true)}
-                    className="btn btn-primary"
-                    style={{ width: '100%' }}
-                  >
-                    Set Up Profile
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-          </div>
+        <div style={{ position: 'sticky', top: 0, zIndex: 100, backgroundColor: 'var(--background)', paddingBottom: '0.5rem' }}>
+          <Stopwatch />
         </div>
       )}
 
