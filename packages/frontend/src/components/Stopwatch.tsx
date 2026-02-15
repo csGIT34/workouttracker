@@ -5,7 +5,7 @@ interface StopwatchProps {
 }
 
 export default function Stopwatch({ onComplete }: StopwatchProps) {
-  const { time, isRunning, targetTime, isComplete, start, pause, reset, startWithPreset, formatTime, progress } = useStopwatch();
+  const { time, isRunning, targetTime, isComplete, isLastSeconds, start, pause, reset, startWithPreset, formatTime, progress } = useStopwatch();
 
   const presets = [
     { label: '30s', seconds: 30 },
@@ -14,9 +14,13 @@ export default function Stopwatch({ onComplete }: StopwatchProps) {
     { label: '3min', seconds: 180 },
   ];
 
+  const bgColor = isComplete ? '#d1fae5' : isLastSeconds ? '#fee2e2' : 'var(--surface)';
+  const textColor = isComplete ? '#065f46' : isLastSeconds ? '#991b1b' : 'var(--text)';
+  const barColor = isComplete ? '#10b981' : isLastSeconds ? '#ef4444' : 'var(--primary)';
+
   return (
     <div className="card" style={{
-      background: isComplete ? '#d1fae5' : 'var(--surface)',
+      background: bgColor,
       transition: 'background-color 0.3s',
     }}>
       <div style={{ marginBottom: '1rem' }}>
@@ -25,7 +29,7 @@ export default function Stopwatch({ onComplete }: StopwatchProps) {
           fontWeight: 'bold',
           textAlign: 'center',
           fontVariantNumeric: 'tabular-nums',
-          color: isComplete ? '#065f46' : 'var(--text)',
+          color: textColor,
         }}>
           {formatTime(time)}
         </div>
@@ -41,7 +45,7 @@ export default function Stopwatch({ onComplete }: StopwatchProps) {
         }}>
           <div style={{
             height: '100%',
-            backgroundColor: isComplete ? '#10b981' : 'var(--primary)',
+            backgroundColor: barColor,
             width: `${progress}%`,
             transition: 'width 0.3s',
           }} />
