@@ -63,6 +63,18 @@ export function useStopwatch() {
     }
   }, [time, targetTime, isRunning]);
 
+  // Vibration fallback for mobile (works from timer callbacks unlike Web Audio on iOS)
+  useEffect(() => {
+    if (!isRunning || targetTime === null) return;
+    if (!navigator.vibrate) return;
+
+    if (time === 3 || time === 2 || time === 1) {
+      navigator.vibrate(100); // Short buzz for countdown
+    } else if (time === 0) {
+      navigator.vibrate([200, 100, 200, 100, 300]); // Long pattern for completion
+    }
+  }, [time, isRunning, targetTime]);
+
   // Cancel all scheduled sounds
   const cancelScheduledSounds = () => {
     for (const osc of scheduledOscillatorsRef.current) {

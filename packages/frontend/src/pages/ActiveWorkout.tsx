@@ -304,6 +304,39 @@ export default function ActiveWorkout() {
                 })}
             </div>
           )}
+
+          {isMobile && (
+            <div style={{ marginTop: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+                Calories Burned
+              </h2>
+              <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                {user?.weight ? (
+                  <>
+                    <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                      {currentCalories !== null ? currentCalories : 0}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      kcal (estimate)
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                      Set your weight to track calories
+                    </div>
+                    <button
+                      onClick={() => setShowProfileModal(true)}
+                      className="btn btn-primary"
+                      style={{ width: '100%' }}
+                    >
+                      Set Up Profile
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {!isMobile && (
