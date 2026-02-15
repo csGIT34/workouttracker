@@ -12,8 +12,8 @@ export function useStopwatch() {
   const [targetTime, setTargetTime] = useState<number | null>(null);
   const intervalRef = useRef<number>();
   const audioContextRef = useRef<AudioContext | null>(null);
-  // Track scheduled oscillators so we can cancel them on pause/reset
-  const scheduledOscillatorsRef = useRef<OscillatorNode[]>([]);
+  // Silent oscillator that keeps AudioContext alive on iOS for the entire countdown
+  const keepAliveOscRef = useRef<OscillatorNode | null>(null);
 
   useEffect(() => {
     // Load saved state from localStorage
@@ -63,34 +63,22 @@ export function useStopwatch() {
     }
   }, [time, targetTime, isRunning]);
 
-  // Vibration fallback for mobile (works from timer callbacks unlike Web Audio on iOS)
+  // Reactive sound playback — plays sounds when countdown reaches 3, 2, 1, 0
+  // The AudioContext is kept alive by the silent keep-alive oscillator started during user gesture
   useEffect(() => {
     if (!isRunning || targetTime === null) return;
-    if (!navigator.vibrate) return;
+    const ctx = audioContextRef.current;
+    if (!ctx || ctx.state !== 'running') return;
 
     if (time === 3 || time === 2 || time === 1) {
-      navigator.vibrate(100); // Short buzz for countdown
+      playSound(ctx, 600, 0.15, 0.7);
     } else if (time === 0) {
-      navigator.vibrate([200, 100, 200, 100, 300]); // Long pattern for completion
+      playSound(ctx, 900, 0.4, 0.9);
     }
   }, [time, isRunning, targetTime]);
 
-  // Cancel all scheduled sounds
-  const cancelScheduledSounds = () => {
-    for (const osc of scheduledOscillatorsRef.current) {
-      try { osc.stop(); } catch (e) { /* already stopped */ }
-    }
-    scheduledOscillatorsRef.current = [];
-  };
-
-  // Schedule a sound at an exact future time using Web Audio API timing
-  const scheduleSound = (
-    ctx: AudioContext,
-    startAt: number,
-    frequency: number,
-    duration: number,
-    gainValue: number
-  ) => {
+  // Play a sound immediately on the given AudioContext
+  const playSound = (ctx: AudioContext, frequency: number, duration: number, gainValue: number) => {
     try {
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
@@ -101,15 +89,22 @@ export function useStopwatch() {
       oscillator.frequency.value = frequency;
       oscillator.type = 'sine';
 
-      gainNode.gain.setValueAtTime(gainValue, startAt);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startAt + duration);
+      const now = ctx.currentTime;
+      gainNode.gain.setValueAtTime(gainValue, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
 
-      oscillator.start(startAt);
-      oscillator.stop(startAt + duration);
-
-      scheduledOscillatorsRef.current.push(oscillator);
+      oscillator.start(now);
+      oscillator.stop(now + duration);
     } catch (e) {
-      // Audio scheduling failed
+      // Audio playback failed
+    }
+  };
+
+  // Stop the keep-alive oscillator
+  const stopKeepAlive = () => {
+    if (keepAliveOscRef.current) {
+      try { keepAliveOscRef.current.stop(); } catch (e) { /* already stopped */ }
+      keepAliveOscRef.current = null;
     }
   };
 
@@ -117,44 +112,43 @@ export function useStopwatch() {
 
   const pause = () => {
     setIsRunning(false);
-    cancelScheduledSounds();
+    stopKeepAlive();
   };
 
   const reset = () => {
     setTime(0);
     setIsRunning(false);
     setTargetTime(null);
-    cancelScheduledSounds();
+    stopKeepAlive();
   };
 
   const startWithPreset = (seconds: number) => {
-    // Cancel any previously scheduled sounds
-    cancelScheduledSounds();
+    stopKeepAlive();
 
     // Create/resume AudioContext during user gesture (required by all browsers)
-    let ctx: AudioContext | null = null;
     try {
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new AudioContext();
       }
-      ctx = audioContextRef.current;
+      const ctx = audioContextRef.current;
       if (ctx.state === 'suspended') {
         ctx.resume();
       }
+
+      // Play a silent oscillator for the entire countdown duration.
+      // This keeps the AudioContext in "running" state on iOS, which would
+      // otherwise suspend it after a few seconds of no audio output.
+      // The reactive useEffect above then plays audible sounds at 3, 2, 1, 0.
+      const silentOsc = ctx.createOscillator();
+      const silentGain = ctx.createGain();
+      silentGain.gain.value = 0; // completely silent
+      silentOsc.connect(silentGain);
+      silentGain.connect(ctx.destination);
+      silentOsc.start();
+      silentOsc.stop(ctx.currentTime + seconds + 2); // +2s buffer
+      keepAliveOscRef.current = silentOsc;
     } catch (e) {
       // Web Audio not available
-    }
-
-    // Pre-schedule all countdown sounds from within this user gesture
-    // This is the only reliable way to play sounds on iOS
-    if (ctx) {
-      const now = ctx.currentTime;
-      // Tick sounds at 3, 2, 1 seconds remaining
-      if (seconds > 3) scheduleSound(ctx, now + (seconds - 3), 600, 0.15, 0.7);
-      if (seconds > 2) scheduleSound(ctx, now + (seconds - 2), 600, 0.15, 0.7);
-      if (seconds > 1) scheduleSound(ctx, now + (seconds - 1), 600, 0.15, 0.7);
-      // Completion sound at 0
-      scheduleSound(ctx, now + seconds, 900, 0.4, 0.9);
     }
 
     setTime(seconds);
