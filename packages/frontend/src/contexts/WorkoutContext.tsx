@@ -36,9 +36,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 
   const createWorkout = async (data: CreateWorkoutDto): Promise<Workout> => {
     const response = await api.post('/api/v1/workouts', data);
-    const workout = response.data;
-    setCurrentWorkout(workout);
-    return workout;
+    return response.data;
   };
 
   const getWorkout = async (id: string): Promise<Workout> => {
